@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "local-tools": {
+      "command": "/absolute/path/to/local-mcp-server/server/start_server.sh",
+      "cwd": "/absolute/path/to/local-mcp-server/server"
+    }
+  }
+}
