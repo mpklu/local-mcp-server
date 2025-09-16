@@ -12,18 +12,18 @@ This tool provides comprehensive system information including:
 
 ### Get complete system information
 ```bash
-python info.py get_system_info
+python run.py get_system_info
 ```
 
 ### Check disk usage for a specific path
 ```bash
-python info.py get_disk_usage /home/user
-python info.py get_disk_usage "C:\Users"  # Windows
+python run.py get_disk_usage /home/user
+python run.py get_disk_usage "C:\Users"  # Windows
 ```
 
 ### Get network interface details
 ```bash
-python info.py get_network_info
+python run.py get_network_info
 ```
 
 ## Features Demonstrated
