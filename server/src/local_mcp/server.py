@@ -72,11 +72,12 @@ class LocalMCPServer:
                 logger.error(error_msg)
                 return [{"type": "text", "text": error_msg}]
     
-    async def run(self, force_discovery: bool = False, full_discovery: bool = False):
-        """Start the MCP server."""
+    async def run(self, force_discovery: bool = False, full_discovery: bool = False, host_type: str = "claude-desktop"):
+        """Start the MCP server with the specified host adapter."""
         logger.info("Starting Local MCP Server...")
         logger.info(f"Tools directory: {self.tools_dir}")
         logger.info(f"Config directory: {self.config_dir}")
+        logger.info(f"Host type: {host_type}")
         
         # Initialize discovery and load tools
         if force_discovery:
@@ -90,13 +91,34 @@ class LocalMCPServer:
             logger.info("Skipping discovery - using existing tool configurations")
             await self.discovery.load_existing_tools()
         
-        # Run the server
-        async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(
-                read_stream,
-                write_stream,
-                self.server.create_initialization_options()
-            )
+        # Create and run host adapter
+        from .adapters import AdapterFactory
+        
+        # Get host-specific configuration if available
+        host_config = self.config.get_global_config().__dict__
+        
+        try:
+            adapter = AdapterFactory.create_adapter(host_type, self.server, host_config)
+            logger.info(f"Created {host_type} adapter")
+            
+            # Validate environment
+            is_valid, issues = adapter.validate_environment()
+            if not is_valid:
+                logger.warning(f"Environment validation issues for {host_type}:")
+                for issue in issues:
+                    logger.warning(f"  - {issue}")
+            
+            # Run the adapter
+            await adapter.run()
+            
+        except ValueError as e:
+            logger.error(f"Failed to create adapter: {e}")
+            available_types = AdapterFactory.get_available_types()
+            logger.error(f"Available host types: {', '.join(available_types)}")
+            raise
+        except Exception as e:
+            logger.error(f"Adapter error: {e}")
+            raise
 
 
 def parse_args() -> argparse.Namespace:
@@ -133,6 +155,12 @@ def parse_args() -> argparse.Namespace:
         "--build-tools",
         action="store_true",
         help="Build tools.json from individual tool configs before starting server"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="claude-desktop",
+        help="MCP host type (claude-desktop, generic, google-gemini-cli)"
     )
     return parser.parse_args()
 
@@ -186,7 +214,8 @@ async def main():
     server = LocalMCPServer(tools_dir, config_dir)
     await server.run(
         force_discovery=args.discover or args.force_discover,
-        full_discovery=args.force_discover
+        full_discovery=args.force_discover,
+        host_type=args.host
     )
 
 

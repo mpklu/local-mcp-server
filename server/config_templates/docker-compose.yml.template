@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  local-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./tools:/app/tools
+      - ./config:/app/config
+    environment:
+      - MCP_HOST=generic
+      - MCP_PORT=3001
+      - PYTHONPATH=/app/src
+    command: ["python", "-m", "local_mcp.server", "--host=generic"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a reverse proxy for HTTPS
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - local-mcp-server
+    profiles:
+      - "production"
+
+networks:
+  default:
+    driver: bridge
+
+# Optional volumes for persistent data
+volumes:
+  config_data:
+    driver: local
+  tool_cache:
+    driver: local

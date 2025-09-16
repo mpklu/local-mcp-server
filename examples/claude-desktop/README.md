@@ -25,7 +25,11 @@ This example shows how to configure Local MCP Server with Claude Desktop.
      "mcpServers": {
        "local-tools": {
          "command": "/Users/yourname/local-mcp-server/server/start_server.sh",
-         "cwd": "/Users/yourname/local-mcp-server/server"
+         "args": ["--host=claude-desktop"],
+         "cwd": "/Users/yourname/local-mcp-server/server",
+         "env": {
+           "PYTHONPATH": "/Users/yourname/local-mcp-server/server/src"
+         }
        }
      }
    }

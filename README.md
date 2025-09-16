@@ -5,8 +5,9 @@ A universal Model Context Protocol (MCP) server that automatically discovers and
 ## 🌟 Features
 
 - **Auto-Discovery**: Automatically detects Python and shell scripts in your `tools/` directory
-- **Universal MCP Support**: Works with Claude Desktop, and any MCP-compatible AI assistant
+- **Multi-Host Support**: Works with Claude Desktop, Generic MCP clients, and Google Gemini CLI
 - **Visual Management**: Modern React-based web interface for tool configuration
+- **Host Adapters**: Pluggable architecture supporting different MCP communication protocols
 - **Dependency Isolation**: Each tool gets its own virtual environment
 - **Secure Execution**: Sandboxed script execution with timeout protection
 - **Real-time Monitoring**: Live server status and execution monitoring
@@ -38,20 +39,34 @@ A universal Model Context Protocol (MCP) server that automatically discovers and
    - Open http://localhost:3000 to configure it via the web interface
    - The tool will automatically appear in your MCP-compatible AI assistant
 
-### Configure with Claude Desktop
+### Configure with Your MCP Host
 
-Add this to your Claude Desktop MCP configuration:
-
+#### Claude Desktop (Default)
 ```json
 {
   "mcpServers": {
     "local-tools": {
       "command": "/path/to/local-mcp-server/server/start_server.sh",
+      "args": ["--host=claude-desktop"],
       "cwd": "/path/to/local-mcp-server/server"
     }
   }
 }
 ```
+
+#### Generic MCP Client
+```bash
+# Start server for any MCP-compatible client
+./server/start_server.sh --host=generic
+```
+
+#### Google Gemini CLI
+```bash
+# Start server for Google Gemini CLI
+./server/start_server.sh --host=google-gemini-cli
+```
+
+See [Host Compatibility Guide](docs/host-compatibility.md) for detailed configuration instructions.
 
 ## 📁 Project Structure
 

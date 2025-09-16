@@ -1,0 +1,19 @@
+{
+  "gemini_cli": {
+    "mcp_servers": {
+      "local-tools": {
+        "command": "/absolute/path/to/local-mcp-server/server/start_server.sh",
+        "args": ["--host=google-gemini-cli"],
+        "working_directory": "/absolute/path/to/local-mcp-server/server",
+        "environment": {
+          "PYTHONPATH": "/absolute/path/to/local-mcp-server/server/src"
+        }
+      }
+    }
+  },
+  "configuration_notes": [
+    "⚠️  This configuration is based on expected Gemini CLI format",
+    "📚 Please refer to official Google Gemini CLI documentation",
+    "🔧 Environment variables may need adjustment based on your setup"
+  ]
+}

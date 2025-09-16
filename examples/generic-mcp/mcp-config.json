@@ -1,0 +1,17 @@
+{
+  "mcp_server": {
+    "type": "stdio",
+    "command": "/absolute/path/to/local-mcp-server/server/start_server.sh",
+    "args": ["--host=generic"],
+    "working_directory": "/absolute/path/to/local-mcp-server/server",
+    "environment": {
+      "PYTHONPATH": "/absolute/path/to/local-mcp-server/server/src"
+    }
+  },
+  "client_configuration": {
+    "connection_type": "stdio",
+    "timeout_seconds": 30,
+    "retry_attempts": 3,
+    "protocol_version": "2024-11-05"
+  }
+}

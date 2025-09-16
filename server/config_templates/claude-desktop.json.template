@@ -2,8 +2,8 @@
   "mcpServers": {
     "local-tools": {
       "command": "/absolute/path/to/local-mcp-server/server/start_server.sh",
-      "args": ["--host=claude-desktop"],
       "cwd": "/absolute/path/to/local-mcp-server/server",
+      "args": ["--host=claude-desktop"],
       "env": {
         "PYTHONPATH": "/absolute/path/to/local-mcp-server/server/src"
       }
