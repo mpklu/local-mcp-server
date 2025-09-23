@@ -68,37 +68,62 @@ class ScriptDiscovery:
         return True
     
     async def _full_discovery(self) -> Dict[str, Dict[str, Any]]:
-        """Perform full script discovery."""
+        """Perform full script discovery using directory-based tool detection."""
         
-        # Find Python scripts
-        python_scripts = list(self.tools_dir.rglob("*.py"))
-        shell_scripts = []
+        # Each subdirectory in tools/ represents one tool
+        tool_directories = [d for d in self.tools_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
         
-        # Find shell scripts (executable files without .py extension)
-        for item in self.tools_dir.rglob("*"):
-            if (item.is_file() and 
-                not item.name.endswith('.py') and
-                not item.name.startswith('.') and
-                item.stat().st_mode & 0o111):  # Check if executable
-                shell_scripts.append(item)
+        logger.info(f"Found {len(tool_directories)} tool directories")
         
-        # Filter out unwanted scripts
-        python_scripts = self._filter_scripts(python_scripts)
-        shell_scripts = self._filter_scripts(shell_scripts)
+        # Process each tool directory
+        for tool_dir in tool_directories:
+            await self._analyze_tool_directory(tool_dir)
         
-        # Analyze each script
-        for script_path in python_scripts:
-            await self._analyze_python_script(script_path)
+        # Legacy support: find standalone scripts in root tools/ directory
+        standalone_scripts = [f for f in self.tools_dir.iterdir() if f.is_file() and (f.suffix == '.py' or (f.stat().st_mode & 0o111))]
+        standalone_scripts = self._filter_scripts(standalone_scripts)
         
-        for script_path in shell_scripts:
-            await self._analyze_shell_script(script_path)
+        for script_path in standalone_scripts:
+            if script_path.suffix == '.py':
+                await self._analyze_python_script(script_path)
+            else:
+                await self._analyze_shell_script(script_path)
         
         # Save discovered configurations
         self.config.save_tools_config()
         self._save_discovery_timestamp()
         
-        logger.info(f"Discovered {len(self._discovered_scripts)} scripts")
+        logger.info(f"Discovered {len(self._discovered_scripts)} tools")
         return self._discovered_scripts
+    
+    async def _analyze_tool_directory(self, tool_dir: Path):
+        """Analyze a tool directory to find its entry point and create configuration."""
+        tool_name = tool_dir.name
+        logger.debug(f"Analyzing tool directory: {tool_name}")
+        
+        # Priority order for entry points
+        entry_candidates = [
+            tool_dir / "run.py",    # Python entry point
+            tool_dir / "run.sh",    # Shell entry point  
+            tool_dir / "run",       # Generic executable
+        ]
+        
+        # Find the first existing entry point
+        entry_script = None
+        for candidate in entry_candidates:
+            if candidate.exists():
+                entry_script = candidate
+                break
+        
+        if not entry_script:
+            logger.warning(f"No entry point found for tool '{tool_name}' (looking for run.py, run.sh, or run)")
+            return
+        
+        # Analyze the entry point script
+        if entry_script.suffix == '.py':
+            await self._analyze_python_script(entry_script, tool_name=tool_name)
+        else:
+            await self._analyze_shell_script(entry_script, tool_name=tool_name)
     
     async def load_existing_tools(self):
         """Load tools from existing configuration without rediscovery."""
@@ -229,11 +254,12 @@ class ScriptDiscovery:
         
         return filtered
     
-    async def _analyze_python_script(self, script_path: Path):
+    async def _analyze_python_script(self, script_path: Path, tool_name: Optional[str] = None):
         """Analyze a Python script to extract metadata."""
         try:
             relative_path = script_path.relative_to(self.tools_dir)
-            script_name = self._generate_script_name(relative_path)
+            # Use provided tool_name or generate from path
+            script_name = tool_name or self._generate_script_name(relative_path)
             
             # Skip if already configured and enabled
             existing_config = self.config.get_script_config(script_name)
@@ -274,11 +300,12 @@ class ScriptDiscovery:
         except Exception as e:
             logger.warning(f"Error analyzing Python script {script_path}: {e}")
     
-    async def _analyze_shell_script(self, script_path: Path):
+    async def _analyze_shell_script(self, script_path: Path, tool_name: Optional[str] = None):
         """Analyze a shell script to extract metadata."""
         try:
             relative_path = script_path.relative_to(self.tools_dir)
-            script_name = self._generate_script_name(relative_path)
+            # Use provided tool_name or generate from path
+            script_name = tool_name or self._generate_script_name(relative_path)
             
             # Skip if already configured and disabled
             existing_config = self.config.get_script_config(script_name)

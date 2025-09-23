@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "last_modified": "2025-09-22T22:50:27.911981",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "demo-features",
+    "description": "Entry point for demo-features tool.",
+    "script_path": "demo-features/run.py",
+    "script_type": "python",
+    "requires_confirmation": true,
+    "parameters": [],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [
+      "showcase",
+      "fire"
+    ],
+    "examples": [],
+    "enabled": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "last_modified": "2025-09-22T22:50:27.912261",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "system-info",
+    "description": "Entry point for system-info tool.",
+    "script_path": "system-info/run.py",
+    "script_type": "python",
+    "requires_confirmation": true,
+    "parameters": [],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [
+      "info",
+      "fire"
+    ],
+    "examples": [],
+    "enabled": true
+  }
+}

@@ -1,33 +1,67 @@
 # Google Gemini CLI Configuration
 
-This directory contains configuration examples for using the Local MCP Server with Google's Gemini CLI.
+This example demonstrates how to configure Local MCP Server with Google's Gemini CLI using the experimental host adapter.
 
-## Configuration File
+## ⚠️ Experimental Status
 
-Use the `gemini-config.json` as a template for connecting the Gemini CLI to the Local MCP Server.
+The Google Gemini CLI adapter is **experimental** and based on anticipated MCP protocol support. This configuration is prepared for future Gemini CLI MCP integration.
 
-## Setup Instructions
+## Quick Setup
 
-1. **Install Gemini CLI**: Follow Google's installation instructions
-2. **Update Paths**: Replace `/absolute/path/to/local-mcp-server` with your actual installation path
-3. **Configure Environment**: Set required environment variables
-4. **Add Configuration**: Place configuration in Gemini CLI's config directory
+1. **Prepare Local MCP Server:**
+   ```bash
+   cd /absolute/path/to/local-mcp-server/server
+   python discover_tools.py     # Auto-discover tools
+   python build_tools.py        # Compile configuration
+   ```
 
-## Usage
+2. **Start server for Gemini CLI:**
+   ```bash
+   ./start_server.sh --host google-gemini-cli
+   ```
 
-```bash
-# Start the server in Gemini CLI mode
-cd /path/to/local-mcp-server/server
-./start_server.sh --host=google-gemini-cli
+3. **Configure Gemini CLI** (when available):
+   - Follow Google's official MCP integration documentation
+   - Use provided configuration template
+   - Set required environment variables
 
-# Use with Gemini CLI
-gemini-cli --mcp-config /path/to/gemini-config.json
+## Host Adapter Features (Planned)
+
+The Google Gemini CLI adapter will provide:
+- 🔄 Gemini CLI protocol compatibility  
+- 🔄 Google Cloud authentication integration
+- 🔄 Optimized result formatting for Gemini models
+- 🔄 Context-aware error handling and recovery
+- 🔄 Integration with Google AI Studio workflows
+
+## Current Implementation
+
+Currently provides:
+- ✅ Standard MCP stdio protocol (fallback)
+- ✅ Tool discovery and registration
+- ✅ Basic parameter validation
+- ✅ JSON-RPC message handling
+- ⚠️ Gemini-specific optimizations (prepared for future)
+
+## Configuration Template
+
+When Google Gemini CLI supports MCP, use this configuration structure:
+
+```json
+{
+  "mcp_servers": {
+    "local-tools": {
+      "command": "/absolute/path/to/local-mcp-server/server/start_server.sh",
+      "args": ["--host", "google-gemini-cli"],
+      "cwd": "/absolute/path/to/local-mcp-server/server"
+    }
+  }
+}
 ```
 
-## Environment Variables
+## Environment Setup (Anticipated)
 
-Required for Gemini CLI integration:
-- `GEMINI_CLI_CONFIG`: Path to Gemini CLI configuration directory
+Expected environment variables for full Gemini integration:
 - `GOOGLE_AI_STUDIO_KEY`: Your Google AI Studio API key
 - `GEMINI_PROJECT_ID`: Your Google Cloud project ID
 

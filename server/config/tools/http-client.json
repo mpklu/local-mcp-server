@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "last_modified": "2025-09-22T22:50:27.911823",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "http-client",
+    "description": "Entry point for http-client tool.",
+    "script_path": "http-client/run.py",
+    "script_type": "python",
+    "requires_confirmation": true,
+    "parameters": [],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [
+      "client",
+      "fire"
+    ],
+    "examples": [],
+    "enabled": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "last_modified": "2025-09-22T22:50:27.911625",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "file-ops",
+    "description": "Entry point for file-ops tool.",
+    "script_path": "file-ops/run.py",
+    "script_type": "python",
+    "requires_confirmation": true,
+    "parameters": [],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [
+      "manager",
+      "fire"
+    ],
+    "examples": [],
+    "enabled": true
+  }
+}

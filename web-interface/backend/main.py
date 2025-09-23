@@ -94,7 +94,7 @@ class SimpleDependencyManager:
 
 # Configuration paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-MCP_SERVER_DIR = PROJECT_ROOT / "local_mcp_server"
+MCP_SERVER_DIR = PROJECT_ROOT / "server"
 CONFIG_DIR = MCP_SERVER_DIR / "config"
 TOOLS_DIR = PROJECT_ROOT / "tools"
 INDIVIDUAL_TOOLS_DIR = CONFIG_DIR / "tools"

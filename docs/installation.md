@@ -23,8 +23,10 @@ cd local-mcp-server
 This will:
 - Install all dependencies
 - Set up the development environment  
-- Configure sample tools
-- Provide next steps
+- Configure sample tools with directory-based structure
+- Generate initial individual tool configurations
+- Compile tools.json for MCP server
+- Provide next steps for host adapter configuration
 
 ### Manual Installation
 
@@ -46,7 +48,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cd server
 uv sync
 mkdir -p config/tools
-echo "{}" > config/tools.json
+# Auto-generate tool configurations
+python discover_tools.py
+# Compile configurations
+python build_tools.py
 ```
 
 #### 4. Setup Web Interface
@@ -74,10 +79,19 @@ This provides:
 
 ### Production Mode
 
-Start just the MCP server for Claude Desktop:
+Start the MCP server for different host types:
 
 ```bash
 cd server
+
+# For Claude Desktop (default)
+./start_server.sh --host claude-desktop
+
+# For generic MCP clients
+./start_server.sh --host generic
+
+# For Google Gemini CLI
+./start_server.sh --host google-gemini-cli
 ./start_server.sh
 ```
 
@@ -96,9 +110,17 @@ cd server
 ./start_server.sh --help
 ```
 
-Should show usage information without errors.
+Should show host adapter options and usage information without errors.
 
-### 3. Test Sample Tools
+### 3. Test Discovery System
+```bash
+cd server
+python discover_tools.py --list
+```
+
+Should show 5 discovered tools with configuration status.
+
+### 4. Test Sample Tools
 Through the web interface:
 - Navigate to "Tools" → "system-info"
 - Click "Test Tool" → "get_system_info"
@@ -106,9 +128,10 @@ Through the web interface:
 
 ## Next Steps
 
-1. **Configure with AI Assistant**: See [Host Compatibility Guide](host-compatibility.md)
-2. **Create Your First Tool**: See [Creating Tools Guide](creating-tools.md)  
-3. **Web Interface Tutorial**: See [Web Interface Guide](web-interface.md)
+1. **Configure with AI Assistant**: See [Host Adapter Guide](host-adapters.md)
+2. **Create Your First Tool**: See [Creating Tools Guide](creating-tools.md)
+3. **Understand Discovery System**: See [Discovery System Guide](discovery-system.md)  
+4. **Web Interface Tutorial**: See [Web Interface Guide](web-interface.md)
 
 ## Common Issues
 

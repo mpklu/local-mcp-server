@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "last_modified": "2025-09-22T22:50:27.912125",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "text-utils",
+    "description": "Entry point for text-utils tool.",
+    "script_path": "text-utils/run.py",
+    "script_type": "python",
+    "requires_confirmation": true,
+    "parameters": [],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [
+      "processor",
+      "fire"
+    ],
+    "examples": [],
+    "enabled": true
+  }
+}
