@@ -4,12 +4,14 @@ System Information Tool
 
 Get comprehensive system information including OS, CPU, memory, and disk usage.
 This tool showcases simple execution, JSON output, and parameter handling.
+Now uses argparse instead of Python Fire for command-line argument parsing.
 """
 
 import json
 import platform
 import psutil
-import fire
+import argparse
+import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -123,5 +125,42 @@ def get_network_info():
         return f"Error getting network info: {str(e)}"
 
 
+def main():
+    """Main entry point using argparse."""
+    parser = argparse.ArgumentParser(description="System Information Tool for Local MCP Server")
+    
+    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    
+    # System info subcommand
+    subparsers.add_parser('get_system_info', help='Get comprehensive system information')
+    
+    # Disk usage subcommand
+    disk_parser = subparsers.add_parser('get_disk_usage', help='Get disk usage information')
+    disk_parser.add_argument('--path', default='/', 
+                            help='Filesystem path to check (default: /)')
+    
+    # Network info subcommand
+    subparsers.add_parser('get_network_info', help='Get network interface information')
+    
+    # Parse arguments
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+    
+    # Execute the requested command
+    if args.command == 'get_system_info':
+        result = get_system_info()
+    elif args.command == 'get_disk_usage':
+        result = get_disk_usage(args.path)
+    elif args.command == 'get_network_info':
+        result = get_network_info()
+    else:
+        result = json.dumps({"error": f"Unknown command: {args.command}"})
+    
+    print(result)
+
+
 if __name__ == "__main__":
-    fire.Fire()
+    main()

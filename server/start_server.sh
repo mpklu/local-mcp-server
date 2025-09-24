@@ -84,7 +84,7 @@ mkdir -p ../tools
 
 # Run the server
 # Redirect logs to server.log for web interface monitoring
-echo "Starting Local MCP Server..."
-echo "Logs will be written to: $(pwd)/config/server.log"
+echo "Starting Local MCP Server..." >&2
+echo "Logs will be written to: $(pwd)/config/server.log" >&2
 
-exec "$UV_CMD" run python -m local_mcp.server "$@" >> config/server.log 2>&1
+exec "$UV_CMD" run python -m local_mcp.server "$@" 2>> config/server.log

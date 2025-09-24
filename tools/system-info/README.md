@@ -8,6 +8,9 @@ This tool provides comprehensive system information including:
 - Disk usage for any path
 - Network interface information
 
+**Note**: This tool has been converted from Python Fire to **argparse** to demonstrate 
+both argument parsing approaches in the Local MCP Server system.
+
 ## Usage Examples
 
 ### Get complete system information
@@ -17,7 +20,7 @@ python run.py get_system_info
 
 ### Check disk usage for a specific path
 ```bash
-python run.py get_disk_usage /home/user
+python run.py get_disk_usage --path /home/user
 python run.py get_disk_usage "C:\Users"  # Windows
 ```
 
@@ -25,6 +28,14 @@ python run.py get_disk_usage "C:\Users"  # Windows
 ```bash
 python run.py get_network_info
 ```
+
+## Argparse vs Fire
+
+This tool demonstrates **argparse** usage, while other tools in the system use **Python Fire**:
+
+- **Argparse**: More explicit, traditional Python CLI approach
+- **Fire**: More automatic, function-to-CLI mapping
+- **Both work seamlessly** with the Local MCP Server's universal argument system!
 
 ## Features Demonstrated
 

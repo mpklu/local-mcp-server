@@ -606,6 +606,13 @@ class ScriptDiscovery:
                 "default": False
             }
             
+            # Add function parameter for Python Fire tools that have multiple functions
+            if config.script_type == "python" and len(config.parameters) > 0:
+                properties["function"] = {
+                    "type": "string",
+                    "description": f"Function to call in {script_name} (e.g., list_files, read_file, create_file, get_file_info)"
+                }
+            
             if config.requires_confirmation:
                 required.append("confirm")
             

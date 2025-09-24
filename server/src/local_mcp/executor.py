@@ -207,20 +207,26 @@ class ScriptExecutor:
         args = []
         
         # Remove MCP-specific arguments
-        filtered_args = {k: v for k, v in arguments.items() if k != 'confirm'}
+        filtered_args = {k: v for k, v in arguments.items() if k not in ['confirm', 'function', 'command']}
+        
+        # Check if a specific function/command is requested for Python Fire tools
+        function_name = arguments.get('function') or arguments.get('command')
+        if function_name:
+            args.append(function_name)
         
         # Handle different argument patterns based on script analysis
-        # For Python Fire tools, use positional arguments without flags
+        # For Python Fire tools, use --param=value format for named parameters
         
         for key, value in filtered_args.items():
             if key.startswith('--'):
-                # Remove -- prefix for Python Fire compatibility
-                args.append(str(value))
+                # Already has -- prefix
+                args.append(f'{key}={value}')
             elif len(key) == 1:
+                # Single letter flag
                 args.extend([f'-{key}', str(value)])
             else:
-                # Positional argument or value without flag
-                args.append(str(value))
+                # Named parameter - use Fire's --param=value format
+                args.append(f'--{key}={value}')
         
         return args
     
