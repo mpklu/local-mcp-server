@@ -62,19 +62,22 @@ class ToolExecutionResult:
 
 
 class ScriptExecutor:
-    """Executes scripts safely with proper isolation and individual venvs."""
+    """Executes scripts safely with proper isolation.
+    
+    Simplified: All tools now use run.sh which manages its own environment.
+    """
     
     def __init__(self, tools_dir: Path, config: Config):
         self.tools_dir = tools_dir
         self.config = config
         self.global_config = config.get_global_config()
-        self.venv_manager = IndividualVenvManager(
-            config_dir=config.config_dir,
-            tools_dir=tools_dir
-        )
+        # No longer need venv_manager - tools manage their own environments
     
     async def execute_script(self, script_name: str, arguments: Dict[str, Any]) -> str:
-        """Execute a script with given arguments using individual venvs."""
+        """Execute a script with given arguments.
+        
+        Simplified: All scripts are now run.sh which handle their own setup.
+        """
         import time
         
         start_time = time.time()
@@ -115,25 +118,15 @@ class ScriptExecutor:
             return result.to_string()
         
         try:
-            if script_config.script_type == "python":
-                result = await self._execute_python_script_with_venv(
-                    script_name, script_path, arguments, script_config
-                )
-            elif script_config.script_type == "shell":
-                result = await self._execute_shell_script(
-                    script_path, arguments, script_config
-                )
-            else:
-                result = ToolExecutionResult(
-                    success=False, exit_code=-1, stdout="", 
-                    stderr=f"Unsupported script type: {script_config.script_type}",
-                    execution_time=time.time() - start_time, error_type="validation"
-                )
+            # All tools now use shell scripts (run.sh)
+            result = await self._execute_shell_script(
+                script_path, arguments, script_config
+            )
             
             result.execution_time = time.time() - start_time
             result.tool_metadata.update({
                 "tool_name": script_name,
-                "tool_type": script_config.script_type
+                "tool_type": "shell"
             })
             
             return result.to_string()
@@ -142,7 +135,7 @@ class ScriptExecutor:
             result = ToolExecutionResult(
                 success=False, exit_code=-1, stdout="", stderr=str(e),
                 execution_time=time.time() - start_time, error_type="execution",
-                tool_metadata={"tool_name": script_name, "tool_type": script_config.script_type}
+                tool_metadata={"tool_name": script_name, "tool_type": "shell"}
             )
             logger.error(f"Error executing {script_name}: {e}")
             return result.to_string()

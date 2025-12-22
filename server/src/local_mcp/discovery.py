@@ -68,26 +68,20 @@ class ScriptDiscovery:
         return True
     
     async def _full_discovery(self) -> Dict[str, Dict[str, Any]]:
-        """Perform full script discovery using directory-based tool detection."""
+        """Perform full script discovery using directory-based tool detection.
+        
+        Now simplified: Each tool directory MUST contain a run.sh entry point.
+        """
         
         # Each subdirectory in tools/ represents one tool
-        tool_directories = [d for d in self.tools_dir.iterdir() if d.is_dir() and not d.name.startswith('.')]
+        tool_directories = [d for d in self.tools_dir.iterdir() 
+                          if d.is_dir() and not d.name.startswith('.')]
         
         logger.info(f"Found {len(tool_directories)} tool directories")
         
         # Process each tool directory
         for tool_dir in tool_directories:
             await self._analyze_tool_directory(tool_dir)
-        
-        # Legacy support: find standalone scripts in root tools/ directory
-        standalone_scripts = [f for f in self.tools_dir.iterdir() if f.is_file() and (f.suffix == '.py' or (f.stat().st_mode & 0o111))]
-        standalone_scripts = self._filter_scripts(standalone_scripts)
-        
-        for script_path in standalone_scripts:
-            if script_path.suffix == '.py':
-                await self._analyze_python_script(script_path)
-            else:
-                await self._analyze_shell_script(script_path)
         
         # Save discovered configurations
         self.config.save_tools_config()
@@ -97,33 +91,28 @@ class ScriptDiscovery:
         return self._discovered_scripts
     
     async def _analyze_tool_directory(self, tool_dir: Path):
-        """Analyze a tool directory to find its entry point and create configuration."""
+        """Analyze a tool directory to find its run.sh entry point.
+        
+        Simplified: All tools MUST have a run.sh entry point.
+        """
         tool_name = tool_dir.name
         logger.debug(f"Analyzing tool directory: {tool_name}")
         
-        # Priority order for entry points
-        entry_candidates = [
-            tool_dir / "run.py",    # Python entry point
-            tool_dir / "run.sh",    # Shell entry point  
-            tool_dir / "run",       # Generic executable
-        ]
+        # Only look for run.sh - the universal entry point
+        run_script = tool_dir / "run.sh"
         
-        # Find the first existing entry point
-        entry_script = None
-        for candidate in entry_candidates:
-            if candidate.exists():
-                entry_script = candidate
-                break
-        
-        if not entry_script:
-            logger.warning(f"No entry point found for tool '{tool_name}' (looking for run.py, run.sh, or run)")
+        if not run_script.exists():
+            logger.warning(
+                f"Tool '{tool_name}' missing required run.sh entry point - skipping. "
+                f"All tools must have a run.sh file."
+            )
             return
         
-        # Analyze the entry point script
-        if entry_script.suffix == '.py':
-            await self._analyze_python_script(entry_script, tool_name=tool_name)
-        else:
-            await self._analyze_shell_script(entry_script, tool_name=tool_name)
+        # Make sure it's executable
+        run_script.chmod(0o755)
+        
+        # Analyze the shell script
+        await self._analyze_shell_script(run_script, tool_name=tool_name)
     
     async def load_existing_tools(self):
         """Load tools from existing configuration without rediscovery."""

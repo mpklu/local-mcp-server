@@ -37,7 +37,9 @@ A universal Model Context Protocol (MCP) server that automatically discovers and
 
 3. **Add your first tool**
    - Create a folder in `tools/` with your tool name (e.g., `tools/my-tool/`)
-   - Add your script as `run.py`, `run.sh`, or `run` (entry point)
+   - Copy the template: `cp tools/TEMPLATE/run.sh tools/my-tool/run.sh`
+   - Add your tool logic (Python, Node.js, or any executable)
+   - Edit `run.sh` to call your tool
    - Run `python server/discover_tools.py` to auto-generate configuration
    - Open http://localhost:3000 to configure it via the web interface
    - The tool will automatically appear in your MCP-compatible AI assistant

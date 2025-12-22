@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "last_modified": "2025-12-19T15:48:46.803116",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "TEMPLATE",
+    "description": "Template for creating new tools with standardized run.sh entry point",
+    "script_path": "TEMPLATE/run.sh",
+    "script_type": "shell",
+    "requires_confirmation": true,
+    "parameters": [],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [],
+    "examples": [],
+    "enabled": true
+  }
+}
