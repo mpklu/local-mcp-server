@@ -73,6 +73,37 @@ A universal Model Context Protocol (MCP) server that automatically discovers and
 
 See [Host Adapter Guide](docs/host-adapters.md) for detailed configuration instructions and supported features.
 
+## ⚙️ Advanced Configuration
+
+### Custom Tools Directory
+
+By default, tools are discovered in the `tools/` directory, but you can specify a custom location:
+
+```bash
+# Discovery with custom tools directory
+python server/discover_tools.py --tools-dir=/path/to/my/tools
+
+# Start server with custom tools directory
+./server/start_server.sh --tools-dir=/path/to/my/tools
+
+# Or in Claude Desktop config
+{
+  "mcpServers": {
+    "local-tools": {
+      "command": "/path/to/local-mcp-server/server/start_server.sh",
+      "args": ["--tools-dir", "/custom/tools", "--host=claude-desktop"],
+      "cwd": "/path/to/local-mcp-server/server"
+    }
+  }
+}
+```
+
+This is useful for:
+- Separating tools across different projects
+- Using shared tool repositories
+- Docker volume mounts
+- Multi-tenant deployments
+
 ## 📁 Project Structure
 
 ```

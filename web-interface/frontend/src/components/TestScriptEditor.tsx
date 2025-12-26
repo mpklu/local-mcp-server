@@ -80,9 +80,8 @@ def test_${toolName.replace(/[^a-zA-Z0-9]/g, '_')}_basic():
     # Add your test logic here
     # Example:
     # result = subprocess.run([
-    #     "uv", "--directory", "/path/to/local_mcp_server", 
-    #     "run", "python3", "/path/to/tools/${toolName}/run.py",
-    #     "your_test_arguments"
+    #     "/path/to/tools/${toolName}/run.sh",
+    #     "--your-argument", "value"
     # ], capture_output=True, text=True)
     
     # if result.returncode == 0:

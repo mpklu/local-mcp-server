@@ -114,35 +114,23 @@ const HelpDocumentation: React.FC<HelpDocumentationProps> = () => {
               The discovery system automatically detects tools and generates configurations based on the directory structure.
             </p>
             
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Python Tools */}
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <h4 className="font-medium text-green-900 dark:text-green-100 mb-3 flex items-center">
-                  <span className="text-xl mr-2">🐍</span> Python Tools (Auto-Discovered)
-                </h4>
-                <div className="font-mono text-sm text-green-800 dark:text-green-200 space-y-1">
-                  <div>tools/your-tool-name/</div>
-                  <div className="ml-4">├── <strong>run.py</strong> <span className="text-green-600 dark:text-green-400"># Required entry point (Fire CLI)</span></div>
-                  <div className="ml-4">├── processor.py <span className="text-green-600 dark:text-green-400"># Main functionality</span></div>
-                  <div className="ml-4">├── requirements.txt <span className="text-green-600 dark:text-green-400"># Auto-detected dependencies</span></div>
-                  <div className="ml-4">├── test.py <span className="text-green-600 dark:text-green-400"># Optional test script</span></div>
-                  <div className="ml-4">└── README.md <span className="text-green-600 dark:text-green-400"># Documentation</span></div>
-                </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+                <span className="text-xl mr-2">🎯</span> Universal Tool Structure (All Languages)
+              </h4>
+              <div className="font-mono text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                <div>tools/your-tool-name/</div>
+                <div className="ml-4">├── <strong>run.sh</strong> <span className="text-blue-600 dark:text-blue-400"># REQUIRED universal entry point</span></div>
+                <div className="ml-4">├── main.py <span className="text-blue-600 dark:text-blue-400"># Your Python logic (if Python)</span></div>
+                <div className="ml-4">├── index.js <span className="text-blue-600 dark:text-blue-400"># Your Node.js logic (if Node)</span></div>
+                <div className="ml-4">├── .venv/ <span className="text-blue-600 dark:text-blue-400"># Tool-managed virtual env</span></div>
+                <div className="ml-4">├── requirements.txt <span className="text-blue-600 dark:text-blue-400"># Dependencies (Python)</span></div>
+                <div className="ml-4">├── package.json <span className="text-blue-600 dark:text-blue-400"># Dependencies (Node.js)</span></div>
+                <div className="ml-4">└── README.md <span className="text-blue-600 dark:text-blue-400"># Documentation</span></div>
               </div>
-
-              {/* Shell Tools */}
-              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
-                <h4 className="font-medium text-purple-900 dark:text-purple-100 mb-3 flex items-center">
-                  <span className="text-xl mr-2">🐚</span> Shell Tools (Auto-Discovered)
-                </h4>
-                <div className="font-mono text-sm text-purple-800 dark:text-purple-200 space-y-1">
-                  <div>tools/your-tool-name/</div>
-                  <div className="ml-4">├── <strong>run.sh</strong> <span className="text-purple-600 dark:text-purple-400"># Entry point (preferred)</span></div>
-                  <div className="ml-4">├── <strong>run</strong> <span className="text-purple-600 dark:text-purple-400"># Alternative entry point</span></div>
-                  <div className="ml-4">├── utils.sh <span className="text-purple-600 dark:text-purple-400"># Helper scripts</span></div>
-                  <div className="ml-4">├── test <span className="text-purple-600 dark:text-purple-400"># Optional test script</span></div>
-                  <div className="ml-4">└── README.md <span className="text-purple-600 dark:text-purple-400"># Documentation</span></div>
-                </div>
+              <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-900/40 rounded text-xs text-blue-800 dark:text-blue-200">
+                <strong>Key Change:</strong> ALL tools now use <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">run.sh</code> as the entry point. 
+                This wrapper handles environment setup, execution, and logging for any language.
               </div>
             </div>
           </div>
@@ -159,8 +147,9 @@ const HelpDocumentation: React.FC<HelpDocumentationProps> = () => {
                     <h4 className="font-medium text-yellow-900 dark:text-yellow-100">Critical Requirements</h4>
                     <ul className="mt-2 text-sm text-yellow-800 dark:text-yellow-200 space-y-1">
                       <li>• Each tool MUST be in its own directory under <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">tools/</code></li>
-                      <li>• Entry point priority: <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">run.py</code> → <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">run.sh</code> → <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">run</code></li>
-                      <li>• Python tools should use Fire CLI for parameter handling</li>
+                      <li>• <strong>REQUIRED:</strong> All tools MUST have <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">run.sh</code> entry point (no exceptions)</li>
+                      <li>• <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">run.sh</code> handles environment setup, execution, and logging</li>
+                      <li>• Copy <code className="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">tools/TEMPLATE/run.sh</code> as starting point</li>
                       <li>• Discovery system automatically generates configurations</li>
                       <li>• Scripts should return appropriate exit codes (0 = success, non-zero = error)</li>
                     </ul>
@@ -212,73 +201,64 @@ const HelpDocumentation: React.FC<HelpDocumentationProps> = () => {
                   </p>
                   
                   <div className="mt-3 space-y-3">
-                    {/* Python Example */}
+                    {/* run.sh Wrapper Example */}
                     <div>
-                      <h5 className="text-sm font-medium text-gray-800 dark:text-gray-200">Python Example (run.py):</h5>
-                      <div className="mt-1 bg-gray-100 dark:bg-gray-800 rounded-md p-3 overflow-x-auto">
-                        <pre className="text-sm text-gray-800 dark:text-gray-200">
-{`#!/usr/bin/env python3
-"""
-My Awesome Tool - Description of what it does
-"""
-import sys
-import argparse
-
-def main():
-    parser = argparse.ArgumentParser(description='My awesome tool')
-    parser.add_argument('--input', help='Input parameter')
-    parser.add_argument('--output', help='Output parameter')
-    
-    args = parser.parse_args()
-    
-    # Your tool logic here
-    print(f"Processing input: {args.input}")
-    print(f"Output will be saved to: {args.output}")
-    
-    return 0
-
-if __name__ == "__main__":
-    sys.exit(main())`}
-                        </pre>
-                      </div>
-                    </div>
-
-                    {/* Shell Example */}
-                    <div>
-                      <h5 className="text-sm font-medium text-gray-800 dark:text-gray-200">Shell Example (run):</h5>
+                      <h5 className="text-sm font-medium text-gray-800 dark:text-gray-200">Universal Entry Point (run.sh):</h5>
                       <div className="mt-1 bg-gray-100 dark:bg-gray-800 rounded-md p-3 overflow-x-auto">
                         <pre className="text-sm text-gray-800 dark:text-gray-200">
 {`#!/bin/bash
 # My Awesome Tool - Description of what it does
+# @param input: Input parameter (type: string, required: true)
+# @param output: Output file path (type: string, required: false)
 
-set -e  # Exit on any error
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
-# Parse command line arguments
-INPUT=""
-OUTPUT=""
+SCRIPT_DIR="$(cd "$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/.venv"
 
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --input)
-            INPUT="$2"
-            shift 2
-            ;;
-        --output)
-            OUTPUT="$2"
-            shift 2
-            ;;
-        *)
-            echo "Unknown option: $1"
-            exit 1
-            ;;
-    esac
-done
+# Setup Python virtual environment
+if [ ! -d "$VENV_DIR" ]; then
+    echo "[INFO] Creating virtual environment..."
+    python3 -m venv "$VENV_DIR"
+    source "$VENV_DIR/bin/activate"
+    pip install --quiet --upgrade pip
+    if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
+        pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
+    fi
+else
+    source "$VENV_DIR/bin/activate"
+fi
 
-# Your tool logic here
-echo "Processing input: $INPUT"
-echo "Output will be saved to: $OUTPUT"
+# Execute the actual tool (forwards all arguments)
+python3 "$SCRIPT_DIR/main.py" "$@"`}
+                        </pre>
+                      </div>
+                    </div>
 
-exit 0`}
+                    {/* Python Tool Logic Example */}
+                    <div>
+                      <h5 className="text-sm font-medium text-gray-800 dark:text-gray-200">Tool Logic (main.py):</h5>
+                      <div className="mt-1 bg-gray-100 dark:bg-gray-800 rounded-md p-3 overflow-x-auto">
+                        <pre className="text-sm text-gray-800 dark:text-gray-200">
+{`#!/usr/bin/env python3
+"""My Awesome Tool - Processes input and generates output"""
+import fire
+
+def process(input: str, output: str = "output.txt"):
+    """
+    Process input and save to output file.
+    
+    Args:
+        input: Input data to process
+        output: Output file path (default: output.txt)
+    """
+    print(f"Processing input: {input}")
+    with open(output, 'w') as f:
+        f.write(f"Processed: {input}\\n")
+    print(f"✓ Output saved to: {output}")
+
+if __name__ == "__main__":
+    fire.Fire(process)`}
                         </pre>
                       </div>
                     </div>
@@ -372,8 +352,7 @@ def test_basic_functionality():
         
         # Run the tool
         result = subprocess.run([
-            sys.executable, 
-            os.path.join(os.path.dirname(__file__), 'run.py'),
+            os.path.join(os.path.dirname(__file__), 'run.sh'),
             '--input', test_file,
             '--output', '/tmp/test_output'
         ], capture_output=True, text=True)
@@ -538,7 +517,7 @@ main "$@"`}
                   <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">2</div>
                   <div>
                     <span className="font-medium text-blue-800 dark:text-blue-200">Entry Point Detection</span>
-                    <span className="text-blue-600 dark:text-blue-400 text-sm ml-2">→ Looks for run.py, run.sh, or run</span>
+                    <span className="text-blue-600 dark:text-blue-400 text-sm ml-2">→ Looks for run.sh (universal entry point)</span>
                   </div>
                 </div>
                 <div className="flex items-center">
@@ -683,7 +662,7 @@ main "$@"`}
 {`{
   "name": "System Information",
   "description": "Get detailed system information",
-  "script_path": "tools/system-info/run.py",
+  "script_path": "tools/system-info/run.sh",
   "dependencies": ["psutil", "platform"],
   "timeout": 30,
   "enabled": true,
@@ -713,7 +692,7 @@ main "$@"`}
     "system-info": {
       "name": "System Information",
       "description": "Get detailed system information",
-      "script_path": "tools/system-info/run.py",
+      "script_path": "tools/system-info/run.sh",
       "dependencies": ["psutil", "platform"],
       "timeout": 30,
       "enabled": true,
@@ -1158,7 +1137,7 @@ main "$@"`}
                     <strong>Tools not discovered:</strong>
                     <ul className="list-disc list-inside ml-4 mt-1">
                       <li>Ensure tools are in <code className="bg-red-100 dark:bg-red-800 px-1 rounded">tools/</code> directory</li>
-                      <li>Check entry point exists: <code className="bg-red-100 dark:bg-red-800 px-1 rounded">run.py</code>, <code className="bg-red-100 dark:bg-red-800 px-1 rounded">run.sh</code>, or <code className="bg-red-100 dark:bg-red-800 px-1 rounded">run</code></li>
+                      <li>Check entry point exists: <code className="bg-red-100 dark:bg-red-800 px-1 rounded">run.sh</code> (universal entry point REQUIRED)</li>
                       <li>Run <code className="bg-red-100 dark:bg-red-800 px-1 rounded">python discover_tools.py</code> to regenerate configs</li>
                       <li>Verify <code className="bg-red-100 dark:bg-red-800 px-1 rounded">python build_tools.py</code> completed successfully</li>
                     </ul>

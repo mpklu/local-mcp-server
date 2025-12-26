@@ -170,9 +170,9 @@ const AddToolWizard: React.FC<AddToolWizardProps> = () => {
             </h4>
             <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
               <p>• Tools must be placed in the <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">tools/</code> directory</p>
-              <p>• Each tool needs a standardized entry point: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">run.py</code> (Python) or <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">run</code> (Shell)</p>
-              <p>• Optional test scripts: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">test.py</code> or <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">test</code></p>
-              <p>• Dependencies are managed automatically via configuration</p>
+              <p>• <strong>REQUIRED:</strong> All tools must have <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">run.sh</code> as universal entry point</p>
+              <p>• Copy template: <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">tools/TEMPLATE/run.sh</code></p>
+              <p>• Each tool manages its own virtual environment and dependencies</p>
             </div>
             <div className="mt-3">
               <a 
@@ -273,7 +273,7 @@ const AddToolWizard: React.FC<AddToolWizardProps> = () => {
                     <div className="text-center">
                       <span className="text-2xl">🐍</span>
                       <div className="mt-2 font-medium">Python</div>
-                      <div className="text-xs text-gray-500">run.py entry point</div>
+                      <div className="text-xs text-gray-500">run.sh → main.py</div>
                     </div>
                   </button>
                   <button
@@ -287,7 +287,7 @@ const AddToolWizard: React.FC<AddToolWizardProps> = () => {
                     <div className="text-center">
                       <span className="text-2xl">🐚</span>
                       <div className="mt-2 font-medium">Shell</div>
-                      <div className="text-xs text-gray-500">run script entry point</div>
+                      <div className="text-xs text-gray-500">run.sh wrapper</div>
                     </div>
                   </button>
                 </div>
@@ -345,8 +345,9 @@ const AddToolWizard: React.FC<AddToolWizardProps> = () => {
               <div className="font-mono text-sm text-gray-700 dark:text-gray-300 space-y-1">
                 <div>tools/</div>
                 <div className="ml-4">└── {toolData.name}/</div>
-                <div className="ml-8">├── {toolData.scriptType === 'python' ? 'run.py' : 'run'} <span className="text-green-600 dark:text-green-400">(template tool)</span></div>
-                <div className="ml-8">├── {toolData.scriptType === 'python' ? 'test.py' : 'test'} <span className="text-blue-600 dark:text-blue-400">(test suite)</span></div>
+                <div className="ml-8">├── run.sh <span className="text-green-600 dark:text-green-400">(universal entry point)</span></div>
+                <div className="ml-8">├── {toolData.scriptType === 'python' ? 'main.py' : 'script.sh'} <span className="text-green-600 dark:text-green-400">(tool logic)</span></div>
+                <div className="ml-8">├── {toolData.scriptType === 'python' ? 'requirements.txt' : 'README.md'} <span className="text-blue-600 dark:text-blue-400">(dependencies)</span></div>
                 <div className="ml-8">└── README.md <span className="text-gray-500">(documentation)</span></div>
               </div>
             </div>
