@@ -57,6 +57,21 @@ class GlobalConfig(BaseModel):
     timeout_seconds: int = 300
     auto_cleanup_temp: bool = True
     temp_retention_hours: int = 24
+    
+    # Logging settings
+    log_dir: str = "config/logs"
+    log_level: str = "INFO"
+    enable_json_logging: bool = False
+    enable_file_logging: bool = True
+    enable_audit_logging: bool = True
+    log_max_bytes: int = 10*1024*1024  # 10MB
+    log_backup_count: int = 5
+    
+    # Redaction settings
+    redact_sensitive_data: bool = True
+    sensitive_keys: List[str] = Field(default_factory=list)
+    scan_values_for_patterns: bool = True
+    redaction_style: str = "full"  # full, partial, hint
 
 
 class Config:

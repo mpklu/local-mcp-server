@@ -73,15 +73,20 @@ class ScriptExecutor:
         self.global_config = config.get_global_config()
         # No longer need venv_manager - tools manage their own environments
     
-    async def execute_script(self, script_name: str, arguments: Dict[str, Any]) -> str:
+    async def execute_script(self, script_name: str, arguments: Dict[str, Any], request_id: str = "unknown") -> str:
         """Execute a script with given arguments.
         
         Simplified: All scripts are now run.sh which handle their own setup.
+        
+        Args:
+            script_name: Name of the script to execute
+            arguments: Dictionary of arguments to pass
+            request_id: Request correlation ID for logging
         """
         import time
         
         start_time = time.time()
-        logger.info(f"Executing script: {script_name}")
+        logger.info(f"[{request_id}] Executing script: {script_name}")
         
         # Get script configuration
         script_config = self.config.get_script_config(script_name)

@@ -7,14 +7,195 @@ This module provides comprehensive input validation to prevent:
 - Prompt injection
 - Log injection
 - Type confusion attacks
+- Sensitive data leakage in logs
 """
 
 import re
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, Set
 
 logger = logging.getLogger(__name__)
+
+
+class SensitiveDataRedactor:
+    """Redact sensitive data from logs and outputs."""
+    
+    # Sensitive key patterns (case-insensitive)
+    SENSITIVE_KEYS = {
+        'password', 'passwd', 'pwd',
+        'secret', 'token', 'key', 'api_key', 'apikey', 'api-key',
+        'authorization', 'auth', 'auth_token',
+        'private_key', 'private-key', 'privatekey',
+        'access_key', 'access-key', 'accesskey',
+        'secret_key', 'secret-key', 'secretkey',
+        'ssn', 'social_security',
+        'credit_card', 'creditcard', 'ccn', 'card_number',
+        'pin', 'cvv', 'cvc',
+        'bearer', 'oauth', 'session',
+        'cookie', 'csrf'
+    }
+    
+    # Sensitive value patterns (regex)
+    PATTERNS = {
+        'credit_card': re.compile(r'\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b'),
+        'ssn': re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),
+        'api_key_generic': re.compile(r'\b[a-zA-Z0-9_-]{32,}\b'),
+        'aws_key': re.compile(r'\bAKIA[0-9A-Z]{16}\b'),
+        'github_token': re.compile(r'\bghp_[a-zA-Z0-9]{36}\b'),
+        'gitlab_token': re.compile(r'\bglpat-[a-zA-Z0-9_-]{20}\b'),
+        'openai_key': re.compile(r'\bsk-[a-zA-Z0-9]{48}\b'),
+        'jwt': re.compile(r'\beyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\b'),
+        'private_key': re.compile(r'-----BEGIN (RSA |EC )?PRIVATE KEY-----'),
+    }
+    
+    @staticmethod
+    def redact_dict(
+        data: Dict[str, Any],
+        sensitive_keys: Optional[Set[str]] = None,
+        redaction_style: str = "full",
+        scan_values: bool = True
+    ) -> Dict[str, Any]:
+        """Redact sensitive data from dictionary.
+        
+        Args:
+            data: Dictionary to redact
+            sensitive_keys: Additional keys to treat as sensitive
+            redaction_style: "full" (***REDACTED***), "partial" (abc***xyz), "hint" (<redacted:8_chars>)
+            scan_values: Whether to scan string values for sensitive patterns
+            
+        Returns:
+            Dictionary with sensitive data redacted
+        """
+        if sensitive_keys is None:
+            sensitive_keys = set()
+        
+        all_sensitive_keys = SensitiveDataRedactor.SENSITIVE_KEYS | sensitive_keys
+        result = {}
+        
+        for key, value in data.items():
+            key_lower = key.lower()
+            
+            # Check if key is sensitive
+            is_sensitive_key = any(sk in key_lower for sk in all_sensitive_keys)
+            
+            if is_sensitive_key:
+                # Redact based on style
+                if isinstance(value, str):
+                    result[key] = SensitiveDataRedactor._redact_string(
+                        value, redaction_style, f"key:{key}"
+                    )
+                else:
+                    result[key] = "***REDACTED***"
+            elif isinstance(value, dict):
+                # Recursively redact nested dicts
+                result[key] = SensitiveDataRedactor.redact_dict(
+                    value, sensitive_keys, redaction_style, scan_values
+                )
+            elif isinstance(value, list):
+                # Redact lists
+                result[key] = [
+                    SensitiveDataRedactor.redact_dict(item, sensitive_keys, redaction_style, scan_values)
+                    if isinstance(item, dict)
+                    else SensitiveDataRedactor._redact_value(item, redaction_style, scan_values)
+                    for item in value
+                ]
+            else:
+                # Check value for patterns
+                result[key] = SensitiveDataRedactor._redact_value(value, redaction_style, scan_values)
+        
+        return result
+    
+    @staticmethod
+    def _redact_value(value: Any, redaction_style: str, scan_values: bool) -> Any:
+        """Redact a single value if it contains sensitive patterns."""
+        if not scan_values or not isinstance(value, str):
+            return value
+        
+        # Check for sensitive patterns
+        for pattern_name, pattern in SensitiveDataRedactor.PATTERNS.items():
+            if pattern.search(value):
+                return SensitiveDataRedactor._redact_string(
+                    value, redaction_style, f"pattern:{pattern_name}"
+                )
+        
+        return value
+    
+    @staticmethod
+    def _redact_string(value: str, redaction_style: str, reason: str) -> str:
+        """Redact a string based on style."""
+        if redaction_style == "full":
+            return "***REDACTED***"
+        elif redaction_style == "partial" and len(value) > 8:
+            return f"{value[:3]}***{value[-3:]}"
+        elif redaction_style == "hint":
+            return f"<redacted:{len(value)}_chars:{reason}>"
+        else:
+            return "***REDACTED***"
+    
+    @staticmethod
+    def redact_for_logging(
+        data: Any,
+        max_length: int = 500,
+        sensitive_keys: Optional[Set[str]] = None
+    ) -> str:
+        """Redact and format data for logging.
+        
+        Args:
+            data: Data to redact and format
+            max_length: Maximum length of output
+            sensitive_keys: Additional sensitive keys
+            
+        Returns:
+            Redacted string safe for logging
+        """
+        if isinstance(data, dict):
+            redacted = SensitiveDataRedactor.redact_dict(
+                data,
+                sensitive_keys=sensitive_keys,
+                redaction_style="full",
+                scan_values=True
+            )
+            result = str(redacted)
+        else:
+            result = str(data)
+        
+        # Scan result for patterns one more time
+        for pattern_name, pattern in SensitiveDataRedactor.PATTERNS.items():
+            result = pattern.sub("***REDACTED***", result)
+        
+        # Remove control characters
+        result = result.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+        
+        # Truncate if too long
+        if len(result) > max_length:
+            result = result[:max_length] + '...'
+        
+        return result
+    
+    @staticmethod
+    def redact_for_audit(
+        data: Any,
+        sensitive_keys: Optional[Set[str]] = None
+    ) -> Dict[str, Any]:
+        """Redact data for audit logs (with hints for debugging).
+        
+        Args:
+            data: Data to redact
+            sensitive_keys: Additional sensitive keys
+            
+        Returns:
+            Redacted dictionary with type hints
+        """
+        if isinstance(data, dict):
+            return SensitiveDataRedactor.redact_dict(
+                data,
+                sensitive_keys=sensitive_keys,
+                redaction_style="hint",
+                scan_values=True
+            )
+        else:
+            return {"value": str(data)}
 
 
 class InputSanitizer:

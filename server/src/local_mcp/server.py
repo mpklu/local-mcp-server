@@ -36,6 +36,25 @@ class LocalMCPServer:
         self.config_dir = config_dir
         self.config = Config(config_dir)
         
+        # Setup logging first
+        from .logging_config import setup_logging
+        from .sanitization import SensitiveDataRedactor
+        
+        log_dir = Path(self.config.get_global_config().log_dir)
+        self.audit_logger = setup_logging(
+            log_dir=log_dir,
+            level=self.config.get_global_config().log_level,
+            enable_json=self.config.get_global_config().enable_json_logging,
+            enable_file_logging=self.config.get_global_config().enable_file_logging,
+            enable_audit_logging=self.config.get_global_config().enable_audit_logging,
+            max_bytes=self.config.get_global_config().log_max_bytes,
+            backup_count=self.config.get_global_config().log_backup_count
+        )
+        
+        # Setup redactor
+        self.redactor = SensitiveDataRedactor()
+        self.redact_enabled = self.config.get_global_config().redact_sensitive_data
+        
         # Use configurable server name
         server_name = self.config.get_global_config().server_name
         self.server = Server(server_name)
@@ -63,9 +82,36 @@ class LocalMCPServer:
         @self.server.call_tool()
         async def call_tool(name: str, arguments: dict) -> list[dict]:
             """Execute a tool with given arguments."""
+            from .logging_config import generate_request_id
+            from .sanitization import SensitiveDataRedactor
+            
+            request_id = generate_request_id()
+            
+            # Redact sensitive data for logging
+            if self.redact_enabled:
+                redacted_args = SensitiveDataRedactor.redact_for_logging(
+                    arguments,
+                    sensitive_keys=set(self.config.global_config.sensitive_keys)
+                )
+            else:
+                redacted_args = str(arguments)
+            
+            logger.info(f"[{request_id}] Executing tool: {name} with args: {redacted_args}")
+            
+            # Audit log start
+            if self.audit_logger:
+                audit_args = SensitiveDataRedactor.redact_for_audit(
+                    arguments,
+                    sensitive_keys=set(self.config.global_config.sensitive_keys)
+                )
+                self.audit_logger.log_tool_execution_start(
+                    request_id=request_id,
+                    tool_name=name,
+                    arguments=audit_args,
+                    confirmed=arguments.get('confirm', False)
+                )
+            
             try:
-                logger.info(f"Executing tool: {name} with args: {arguments}")
-                
                 # Validate arguments against tool schema
                 tools = await list_tools()
                 tool = next((t for t in tools if t.name == name), None)
@@ -76,14 +122,52 @@ class LocalMCPServer:
                     
                     if validation_errors:
                         error_msg = f"Validation failed for tool {name}:\n" + "\n".join(validation_errors)
-                        logger.error(error_msg)
+                        logger.error(f"[{request_id}] {error_msg}")
+                        
+                        if self.audit_logger:
+                            self.audit_logger.log_tool_execution_end(
+                                request_id=request_id,
+                                tool_name=name,
+                                success=False,
+                                exit_code=1,
+                                execution_time=0.0,
+                                error_message="Validation failed"
+                            )
+                        
                         return [{"type": "text", "text": error_msg}]
                 
-                result = await self.executor.execute_script(name, arguments)
+                result = await self.executor.execute_script(name, arguments, request_id=request_id)
+                
+                # Audit log success
+                if self.audit_logger:
+                    # Try to parse exit code from result
+                    exit_code = 0 if "success" in result.lower() else 1
+                    self.audit_logger.log_tool_execution_end(
+                        request_id=request_id,
+                        tool_name=name,
+                        success=exit_code == 0,
+                        exit_code=exit_code,
+                        execution_time=0.0  # Will be updated in executor
+                    )
+                
+                logger.info(f"[{request_id}] Tool execution completed: {name}")
                 return [{"type": "text", "text": result}]
+                
             except Exception as e:
                 error_msg = f"Error executing tool {name}: {e}"
-                logger.error(error_msg)
+                logger.error(f"[{request_id}] {error_msg}")
+                
+                # Audit log failure
+                if self.audit_logger:
+                    self.audit_logger.log_tool_execution_end(
+                        request_id=request_id,
+                        tool_name=name,
+                        success=False,
+                        exit_code=-1,
+                        execution_time=0.0,
+                        error_message=str(e)
+                    )
+                
                 return [{"type": "text", "text": error_msg}]
     
     async def run(self, force_discovery: bool = False, full_discovery: bool = False, host_type: str = "claude-desktop"):
