@@ -12,6 +12,22 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 
+class WorkspaceConfig(BaseModel):
+    """Workspace and security configuration for a tool."""
+    # Path security settings
+    allowed_paths: List[str] = Field(default_factory=lambda: ['{TOOL_DIR}/workspace'])
+    allow_absolute_paths: bool = False
+    follow_symlinks: bool = True
+    create_workspace: bool = True
+    
+    # String validation settings
+    max_string_length: Optional[int] = None
+    check_prompt_injection: bool = True
+    
+    # Output settings
+    max_output_length: Optional[int] = None
+
+
 class ScriptConfig(BaseModel):
     """Configuration for a single script."""
     name: str
@@ -26,6 +42,7 @@ class ScriptConfig(BaseModel):
     examples: List[str] = Field(default_factory=list)
     tags: List[str] = Field(default_factory=list)
     enabled: bool = True
+    workspace_config: WorkspaceConfig = Field(default_factory=WorkspaceConfig)
 
 
 class GlobalConfig(BaseModel):

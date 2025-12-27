@@ -243,8 +243,146 @@ Document parameters in run.sh header comments for auto-discovery:
 # @param input_file: Path to input file (type: string, required: true)
 # @param output_format: Output format (type: string, required: false, default: json)
 # @param verbose: Enable verbose logging (type: boolean, required: false)
-# @param count: Number of iterations (type: integer, required: false, default: 1)
+# @param count: Number of iterations (type: integer, required: false, default: 1)```
+
+## Workspace Configuration & Path Security
+
+### Default Workspace Isolation
+
+Each tool runs with **path validation** enabled by default to prevent path traversal attacks:
+
+**Default settings:**
+- **Allowed paths:** `{TOOL_DIR}/workspace/` only
+- **Absolute paths:** ❌ Not allowed
+- **Symlinks:** ✅ Followed and validated
+- **Parent references (`../`):** ❌ Not allowed
+
+Example - this is **blocked** by default:
+```json
+{
+  \"function\": \"read_file\",
+  \"filepath\": \"../../../etc/passwd\"  // ❌ BLOCKED - escapes workspace
+}
 ```
+
+### Configuring Workspace Access
+
+To allow broader file access, configure workspace settings in your tool's config file (`server/config/tools/your-tool.json`):
+
+```json
+{
+  \"workspace_config\": {
+    \"allowed_paths\": [
+      \"{TOOL_DIR}/workspace\",     // Tool's own workspace
+      \"~/Documents\",               // User's documents
+      \"/tmp/mcp_workspace\"         // Shared temp space
+    ],
+    \"allow_absolute_paths\": false,  // Allow/reject absolute paths
+    \"follow_symlinks\": true,        // Resolve and validate symlinks
+    \"create_workspace\": true,       // Auto-create workspace dir
+    \"max_string_length\": 1000000,   // Max string parameter size
+    \"check_prompt_injection\": true  // Check for prompt injection
+  }
+}
+```
+
+### Special Variables in Paths
+
+Use these variables in `allowed_paths`:
+
+- `{TOOL_DIR}` - Expands to tool's directory (e.g., `tools/my-tool/`)
+- `{HOME}` - Expands to user's home directory
+- `{TEMP}` - Expands to system temp directory (`/tmp`)
+
+Example:
+```json
+{
+  \"allowed_paths\": [
+    \"{TOOL_DIR}/workspace\",        // tools/my-tool/workspace/
+    \"{HOME}/mcp_projects\",          // /Users/username/mcp_projects/
+    \"{TEMP}/mcp_temp\"               // /tmp/mcp_temp/
+  ]
+}
+```
+
+### Security Profiles by Use Case
+
+**Profile 1: High Security (Default)**
+Use for untrusted environments or destructive operations:
+```json
+{
+  \"workspace_config\": {
+    \"allowed_paths\": [\"{TOOL_DIR}/workspace\"],
+    \"allow_absolute_paths\": false,
+    \"follow_symlinks\": false
+  }
+}
+```
+
+**Profile 2: Development**
+Use for trusted development environments:
+```json
+{
+  \"workspace_config\": {
+    \"allowed_paths\": [
+      \"{TOOL_DIR}/workspace\",
+      \"~/Projects\",
+      \"~/Documents\"
+    ],
+    \"allow_absolute_paths\": false,
+    \"follow_symlinks\": true
+  }
+}
+```
+
+**Profile 3: System Tool**
+Use for administrative tools (use with caution):
+```json
+{
+  \"workspace_config\": {
+    \"allowed_paths\": [
+      \"/var/log\",
+      \"/etc\",
+      \"~/\"
+    ],
+    \"allow_absolute_paths\": true,
+    \"follow_symlinks\": true
+  }
+}
+```
+
+### Path Validation Examples
+
+**✅ Valid paths (default config):**
+```
+workspace/data.txt           → tools/my-tool/workspace/data.txt
+workspace/subdir/file.json   → tools/my-tool/workspace/subdir/file.json
+./workspace/output.csv       → tools/my-tool/workspace/output.csv
+```
+
+**❌ Blocked paths (default config):**
+```
+../../../etc/passwd          → ❌ Parent directory reference
+/etc/passwd                  → ❌ Absolute path not allowed
+workspace/link_to_outside    → ❌ Symlink escapes workspace (if followed)
+```
+
+### Error Messages
+
+When path validation fails, you'll see **verbose error messages**:
+
+```
+Path validation failed for 'filepath': Parent directory references (..) not allowed: ../../../etc/passwd
+```
+
+```
+Path validation failed for 'filepath': Path not within allowed directories: /etc/passwd
+Allowed bases: /path/to/tools/my-tool/workspace
+```
+
+```
+Security validation failed for my-tool:
+Path validation failed for 'filepath': Absolute paths not allowed for this tool: /tmp/outside.txt```
 
 ## Best Practices
 

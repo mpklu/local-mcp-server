@@ -108,6 +108,29 @@ class ScriptExecutor:
                     f"Please set 'confirm': true to execute."
                 )
         
+        # Validate arguments for security issues (path traversal, injection, etc.)
+        from .sanitization import validate_arguments_security
+        security_errors = validate_arguments_security(
+            arguments,
+            script_config.model_dump(),
+            script_name,
+            self.tools_dir
+        )
+        
+        if security_errors:
+            error_msg = f"Security validation failed for {script_name}:\n" + "\n".join(security_errors)
+            logger.error(error_msg)
+            result = ToolExecutionResult(
+                success=False,
+                exit_code=1,
+                stdout="",
+                stderr=error_msg,
+                error_message=error_msg,
+                execution_time=0.0,
+                error_type="security_validation"
+            )
+            return result.to_string()
+        
         # Build script path
         script_path = self.tools_dir / script_config.script_path
         if not script_path.exists():
