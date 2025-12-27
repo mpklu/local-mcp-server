@@ -434,8 +434,8 @@ class ScriptDiscovery:
                 if desc_match:
                     metadata['description'] = desc_match.group(1).strip()
         
-        # Detect positional parameters ($1, $2, etc.)
-        parameters = self._detect_shell_parameters(content, lines)
+        # Parse @param annotations (REQUIRED format)
+        parameters = self._parse_param_annotations(lines)
         metadata['parameters'] = parameters
         
         # Check for interactive input (read commands)
@@ -450,6 +450,95 @@ class ScriptDiscovery:
                 metadata['examples'] = [usage_text.strip()]
         
         return metadata
+    
+    def _parse_param_annotations(self, lines: List[str]) -> List[Dict[str, Any]]:
+        """Parse @param annotations from run.sh header comments.
+        
+        Expected format:
+        # @param name: description (type: string, required: true, default: value)
+        
+        Returns:
+            List of parameter dictionaries with name, type, description, required, default
+        """
+        parameters = []
+        
+        # Pattern to match @param annotations
+        # Format: # @param name: description (type: TYPE, required: BOOL, default: VALUE)
+        param_pattern = re.compile(
+            r'^#\s*@param\s+'
+            r'(\w+):\s*'  # Parameter name
+            r'([^(]+?)'  # Description
+            r'\s*\(\s*'
+            r'type:\s*(\w+)'  # Type (string, integer, boolean, array, object)
+            r'(?:,\s*required:\s*(true|false))?'  # Optional required flag
+            r'(?:,\s*default:\s*([^)]+?))?'  # Optional default value
+            r'\s*\)',
+            re.IGNORECASE
+        )
+        
+        for line in lines[:50]:  # Check first 50 lines for annotations
+            line = line.strip()
+            match = param_pattern.match(line)
+            
+            if match:
+                param_name = match.group(1).strip()
+                description = match.group(2).strip()
+                param_type = match.group(3).strip().lower()
+                required_str = match.group(4)
+                default_value = match.group(5)
+                
+                # Map to JSON Schema types
+                type_mapping = {
+                    'string': 'string',
+                    'integer': 'integer',
+                    'int': 'integer',
+                    'number': 'number',
+                    'float': 'number',
+                    'boolean': 'boolean',
+                    'bool': 'boolean',
+                    'array': 'array',
+                    'list': 'array',
+                    'object': 'object',
+                    'dict': 'object'
+                }
+                
+                json_type = type_mapping.get(param_type, 'string')
+                
+                # Parse required flag (default to true if not specified)
+                required = True
+                if required_str:
+                    required = required_str.lower() == 'true'
+                
+                param = {
+                    'name': param_name,
+                    'type': json_type,
+                    'description': description,
+                    'required': required
+                }
+                
+                # Add default value if specified
+                if default_value:
+                    default_value = default_value.strip()
+                    # Convert default value to appropriate type
+                    if json_type == 'integer':
+                        try:
+                            param['default'] = int(default_value)
+                        except ValueError:
+                            logger.warning(f"Invalid integer default value '{default_value}' for parameter {param_name}")
+                    elif json_type == 'number':
+                        try:
+                            param['default'] = float(default_value)
+                        except ValueError:
+                            logger.warning(f"Invalid number default value '{default_value}' for parameter {param_name}")
+                    elif json_type == 'boolean':
+                        param['default'] = default_value.lower() in ('true', 'yes', '1')
+                    else:
+                        param['default'] = default_value
+                
+                parameters.append(param)
+                logger.debug(f"Parsed @param: {param_name} ({json_type}, required={required})")
+        
+        return parameters
     
     def _detect_shell_parameters(self, content: str, lines: List[str]) -> List[Dict[str, Any]]:
         """Detect parameters from shell script by analyzing positional arguments."""

@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "last_modified": "2025-12-19T15:48:46.803116",
+  "last_modified": "2025-12-26T21:03:57.859122",
   "auto_detected": true,
   "created_by": "discovery_tool",
   "tags": [],
@@ -10,7 +10,47 @@
     "script_path": "TEMPLATE/run.sh",
     "script_type": "shell",
     "requires_confirmation": true,
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "input_file",
+        "type": "string",
+        "description": "Path to input file",
+        "required": true
+      },
+      {
+        "name": "count",
+        "type": "integer",
+        "description": "Number of items to process",
+        "required": false,
+        "default": 10
+      },
+      {
+        "name": "verbose",
+        "type": "boolean",
+        "description": "Enable verbose output",
+        "required": false,
+        "default": false
+      },
+      {
+        "name": "tags",
+        "type": "array",
+        "description": "List of tags",
+        "required": false
+      },
+      {
+        "name": "example_param",
+        "type": "string",
+        "description": "An example parameter",
+        "required": false
+      },
+      {
+        "name": "count",
+        "type": "integer",
+        "description": "Number of iterations",
+        "required": false,
+        "default": 1
+      }
+    ],
     "interactive": false,
     "wrapper_function": null,
     "dependencies": [],

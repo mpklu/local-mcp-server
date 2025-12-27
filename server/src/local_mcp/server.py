@@ -65,6 +65,20 @@ class LocalMCPServer:
             """Execute a tool with given arguments."""
             try:
                 logger.info(f"Executing tool: {name} with args: {arguments}")
+                
+                # Validate arguments against tool schema
+                tools = await list_tools()
+                tool = next((t for t in tools if t.name == name), None)
+                
+                if tool:
+                    from .utils import validate_script_arguments
+                    validation_errors = validate_script_arguments(arguments, tool.inputSchema)
+                    
+                    if validation_errors:
+                        error_msg = f"Validation failed for tool {name}:\n" + "\n".join(validation_errors)
+                        logger.error(error_msg)
+                        return [{"type": "text", "text": error_msg}]
+                
                 result = await self.executor.execute_script(name, arguments)
                 return [{"type": "text", "text": result}]
             except Exception as e:

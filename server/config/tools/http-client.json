@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "last_modified": "2025-09-22T22:50:27.911823",
+  "last_modified": "2025-12-26T21:03:57.859636",
   "auto_detected": true,
   "created_by": "discovery_tool",
   "tags": [],
@@ -10,7 +10,26 @@
     "script_path": "http-client/run.py",
     "script_type": "python",
     "requires_confirmation": true,
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "function",
+        "type": "string",
+        "description": "The function to execute",
+        "required": true
+      },
+      {
+        "name": "url",
+        "type": "string",
+        "description": "URL to request",
+        "required": false
+      },
+      {
+        "name": "method",
+        "type": "string",
+        "description": "HTTP method",
+        "required": false
+      }
+    ],
     "interactive": false,
     "wrapper_function": null,
     "dependencies": [

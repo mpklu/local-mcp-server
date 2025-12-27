@@ -71,8 +71,27 @@ The `run.sh` wrapper provides:
 # Tool: your-tool-name
 # Description: What your tool does
 #
-# @param param1: Description (type: string, required: true)
-# @param param2: Description (type: integer, required: false)
+# ===========================
+# PARAMETER DOCUMENTATION (REQUIRED)
+# ===========================
+# All tools MUST document parameters using @param annotations.
+# Format: @param name: description (type: TYPE, required: BOOL, default: VALUE)
+#
+# Supported types:
+#   - string: Text values
+#   - integer: Whole numbers
+#   - number: Floating point numbers
+#   - boolean: true/false values
+#   - array: Lists of values
+#   - object: Complex objects
+#
+# Examples:
+# @param input_file: Path to the input file (type: string, required: true)
+# @param max_items: Maximum number of items to process (type: integer, required: false, default: 100)
+# @param verbose: Enable detailed logging (type: boolean, required: false, default: false)
+# @param format: Output format (type: string, required: false, default: json)
+#
+# If your tool requires no parameters, leave this section empty (no @param lines)
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 

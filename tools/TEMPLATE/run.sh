@@ -2,6 +2,26 @@
 # Tool: TEMPLATE
 # Description: Template for creating new tools with standardized run.sh entry point
 #
+# ===========================
+# PARAMETER DOCUMENTATION (REQUIRED)
+# ===========================
+# All tools MUST document parameters using @param annotations.
+# These annotations are parsed by the discovery system and exposed to AI assistants.
+# If your tool has no parameters, leave this section empty (no @param lines).
+#
+# Format: @param name: description (type: TYPE, required: BOOL, default: VALUE)
+#
+# Supported types: string, integer, number, boolean, array, object
+# Required: true or false (defaults to true if omitted)
+# Default: optional default value
+#
+# Examples:
+# @param input_file: Path to input file (type: string, required: true)
+# @param count: Number of items to process (type: integer, required: false, default: 10)
+# @param verbose: Enable verbose output (type: boolean, required: false, default: false)
+# @param tags: List of tags (type: array, required: false)
+#
+# Real parameter examples for this template:
 # @param example_param: An example parameter (type: string, required: false)
 # @param count: Number of iterations (type: integer, required: false, default: 1)
 

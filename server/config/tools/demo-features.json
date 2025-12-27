@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "last_modified": "2025-09-22T22:50:27.911981",
+  "last_modified": "2025-12-26T21:03:57.859809",
   "auto_detected": true,
   "created_by": "discovery_tool",
   "tags": [],
@@ -10,7 +10,26 @@
     "script_path": "demo-features/run.py",
     "script_type": "python",
     "requires_confirmation": true,
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "function",
+        "type": "string",
+        "description": "The function to execute",
+        "required": true
+      },
+      {
+        "name": "duration",
+        "type": "integer",
+        "description": "How long a task should run in seconds",
+        "required": false
+      },
+      {
+        "name": "report_interval",
+        "type": "integer",
+        "description": "How often to report progress",
+        "required": false
+      }
+    ],
     "interactive": false,
     "wrapper_function": null,
     "dependencies": [
