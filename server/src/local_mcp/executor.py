@@ -6,8 +6,11 @@ import asyncio
 import json
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -429,7 +432,102 @@ class ScriptExecutor:
         return unique_dir
     
     def cleanup_temp_files(self):
-        """Clean up old temporary files based on retention policy."""
-        # This could be implemented to clean up old files
-        # based on the temp_retention_hours setting
-        pass
+        """Clean up old temporary files based on retention policy.
+        
+        Removes temporary directories and files older than temp_retention_hours
+        from the MCP server's temp directory. Runs only if auto_cleanup_temp is enabled.
+        
+        Returns:
+            dict: Cleanup statistics with counts and sizes
+        """
+        if not self.global_config.auto_cleanup_temp:
+            logger.debug("Auto cleanup disabled, skipping temp file cleanup")
+            return {"skipped": True, "reason": "auto_cleanup_temp disabled"}
+        
+        # Determine temp base directory
+        if self.global_config.temp_dir:
+            temp_base = Path(self.global_config.temp_dir)
+        else:
+            temp_base = Path(tempfile.gettempdir())
+        
+        mcp_temp_dir = temp_base / "local_mcp_server"
+        
+        if not mcp_temp_dir.exists():
+            logger.debug(f"Temp directory does not exist: {mcp_temp_dir}")
+            return {"cleaned": 0, "size_freed": 0, "errors": 0}
+        
+        # Calculate cutoff time
+        retention_hours = self.global_config.temp_retention_hours
+        cutoff_time = time.time() - (retention_hours * 3600)
+        
+        stats = {
+            "cleaned": 0,
+            "size_freed": 0,
+            "errors": 0,
+            "retention_hours": retention_hours,
+            "cutoff_time": datetime.fromtimestamp(cutoff_time).isoformat()
+        }
+        
+        logger.info(f"Starting temp file cleanup (retention: {retention_hours}h, cutoff: {stats['cutoff_time']})")
+        
+        # Iterate through subdirectories
+        try:
+            for item in mcp_temp_dir.iterdir():
+                if not item.is_dir():
+                    continue
+                
+                try:
+                    # Check modification time
+                    mtime = item.stat().st_mtime
+                    
+                    if mtime < cutoff_time:
+                        # Calculate size before deletion
+                        size = self._get_dir_size(item)
+                        
+                        # Delete directory
+                        shutil.rmtree(item)
+                        
+                        stats["cleaned"] += 1
+                        stats["size_freed"] += size
+                        
+                        logger.debug(
+                            f"Cleaned up temp dir: {item.name} "
+                            f"(age: {(time.time() - mtime) / 3600:.1f}h, size: {size / 1024:.1f}KB)"
+                        )
+                    
+                except Exception as e:
+                    stats["errors"] += 1
+                    logger.warning(f"Error cleaning up {item}: {e}")
+        
+        except Exception as e:
+            logger.error(f"Error during temp file cleanup: {e}")
+            stats["errors"] += 1
+        
+        # Log summary
+        if stats["cleaned"] > 0 or stats["errors"] > 0:
+            logger.info(
+                f"Temp cleanup complete: {stats['cleaned']} dirs removed, "
+                f"{stats['size_freed'] / 1024 / 1024:.2f}MB freed, "
+                f"{stats['errors']} errors"
+            )
+        
+        return stats
+    
+    def _get_dir_size(self, path: Path) -> int:
+        """Calculate total size of directory and its contents.
+        
+        Args:
+            path: Directory path
+            
+        Returns:
+            Total size in bytes
+        """
+        total = 0
+        try:
+            for entry in path.rglob('*'):
+                if entry.is_file():
+                    total += entry.stat().st_size
+        except Exception as e:
+            logger.debug(f"Error calculating size for {path}: {e}")
+        
+        return total

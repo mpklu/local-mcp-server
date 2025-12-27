@@ -48,6 +48,13 @@ Local MCP Server implements multiple layers of security to protect your system:
 - **Tool Whitelisting**: Only explicitly configured tools can execute
 - **Process Isolation**: Each tool runs in separate subprocess with captured I/O
 
+### Temporary File Management
+- **Automatic Cleanup**: Removes old temporary files on server startup based on retention policy
+- **Configurable Retention**: Set how long to keep temp files (default: 24 hours)
+- **Statistics Tracking**: Logs cleanup results showing directories removed and space freed
+- **Disk Space Protection**: Prevents accumulation of stale temp files from tool executions
+- **On-Demand Control**: Enable/disable cleanup via `auto_cleanup_temp` config flag
+
 ### Audit Logging
 - **Structured JSON Logs**: Machine-parsable logs with ISO8601 timestamps
 - **Request Correlation**: UUID-based request IDs thread through entire execution chain
@@ -69,7 +76,9 @@ All security features are configurable via `config/global.json`:
   "enable_rate_limiting": true,
   "max_executions_per_minute": 10,
   "redact_sensitive_data": true,
-  "enable_audit_logging": true
+  "enable_audit_logging": true,
+  "auto_cleanup_temp": true,
+  "temp_retention_hours": 24
 }
 ```
 

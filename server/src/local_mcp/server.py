@@ -62,6 +62,12 @@ class LocalMCPServer:
         self.discovery = ScriptDiscovery(tools_dir, self.config)
         self.executor = ScriptExecutor(tools_dir, self.config)
         
+        # Cleanup old temporary files on startup
+        cleanup_stats = self.executor.cleanup_temp_files()
+        if cleanup_stats and cleanup_stats.get('cleaned', 0) > 0:
+            logger.info(f"Cleaned up {cleanup_stats['cleaned']} old temp directories, "
+                       f"freed {cleanup_stats['size_freed'] / (1024*1024):.2f} MB")
+        
         # Setup server handlers
         self._setup_handlers()
     
