@@ -24,6 +24,29 @@
 # Real parameter examples for this template:
 # @param example_param: An example parameter (type: string, required: false)
 # @param count: Number of iterations (type: integer, required: false, default: 1)
+#
+# ===========================
+# OUTPUT FORMAT (RECOMMENDED)
+# ===========================
+# For structured output that AI can easily parse, emit JSON to stdout:
+#
+# Python Example:
+#   import json
+#   result = {"status": "success", "data": {"count": 5, "items": ["a", "b"]}}
+#   print(json.dumps(result))
+#
+# Shell Example:
+#   echo '{"status": "success", "data": {"message": "Operation completed"}}'
+#
+# Benefits:
+# - AI receives structured data instead of plain text
+# - Better integration with automation workflows
+# - Type-safe parsing on the client side
+#
+# For errors, you can also emit JSON:
+#   {"status": "error", "error": {"code": "NOT_FOUND", "message": "File not found"}}
+#
+# Plain text output is still supported for backward compatibility.
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 

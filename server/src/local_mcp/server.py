@@ -196,25 +196,70 @@ class LocalMCPServer:
                     f"(output: {output_size} bytes, time: {result_obj.execution_time:.2f}s)"
                 )
                 
-                # Return output as text (MCP standard format)
+                # Return output with structured format support (Option 1: Tool-Driven Output)
                 if result_obj.success:
                     # Apply truncation
                     output = result_obj.to_string(
                         max_length=self.config.get_global_config().max_output_length
                     )
-                    return [{
-                        "type": "text",
-                        "text": output
-                    }]
+                    
+                    # Try to parse as JSON for structured output
+                    try:
+                        import json
+                        parsed_data = json.loads(output)
+                        
+                        # Successfully parsed JSON - return structured format
+                        logger.debug(f"[{request_id}] Tool output is valid JSON, returning structured format")
+                        return [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "status": "success",
+                                "data": parsed_data,
+                                "format": "json",
+                                "metadata": {
+                                    "execution_time": result_obj.execution_time,
+                                    "exit_code": result_obj.exit_code
+                                }
+                            }, indent=2)
+                        }]
+                    except (json.JSONDecodeError, ValueError):
+                        # Not JSON or invalid JSON - return as plain text
+                        logger.debug(f"[{request_id}] Tool output is plain text, returning text format")
+                        return [{
+                            "type": "text",
+                            "text": output
+                        }]
                 else:
                     # Format error message
                     error_output = result_obj.to_string(
                         max_length=self.config.get_global_config().max_output_length
                     )
-                    return [{
-                        "type": "text",
-                        "text": error_output
-                    }]
+                    
+                    # Try to parse stderr as structured error JSON
+                    try:
+                        import json
+                        parsed_error = json.loads(result_obj.stderr)
+                        
+                        # Tool returned structured error
+                        logger.debug(f"[{request_id}] Tool error is structured JSON")
+                        return [{
+                            "type": "text",
+                            "text": json.dumps({
+                                "status": "error",
+                                "error": parsed_error,
+                                "format": "json",
+                                "metadata": {
+                                    "execution_time": result_obj.execution_time,
+                                    "exit_code": result_obj.exit_code
+                                }
+                            }, indent=2)
+                        }]
+                    except (json.JSONDecodeError, ValueError):
+                        # Return plain text error
+                        return [{
+                            "type": "text",
+                            "text": error_output
+                        }]
                 
             except Exception as e:
                 # Log full error internally with all details
