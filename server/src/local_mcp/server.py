@@ -91,7 +91,7 @@ class LocalMCPServer:
             if self.redact_enabled:
                 redacted_args = SensitiveDataRedactor.redact_for_logging(
                     arguments,
-                    sensitive_keys=set(self.config.global_config.sensitive_keys)
+                    sensitive_keys=set(self.config.get_global_config().sensitive_keys)
                 )
             else:
                 redacted_args = str(arguments)
@@ -102,7 +102,7 @@ class LocalMCPServer:
             if self.audit_logger:
                 audit_args = SensitiveDataRedactor.redact_for_audit(
                     arguments,
-                    sensitive_keys=set(self.config.global_config.sensitive_keys)
+                    sensitive_keys=set(self.config.get_global_config().sensitive_keys)
                 )
                 self.audit_logger.log_tool_execution_start(
                     request_id=request_id,
@@ -136,22 +136,43 @@ class LocalMCPServer:
                         
                         return [{"type": "text", "text": error_msg}]
                 
-                result = await self.executor.execute_script(name, arguments, request_id=request_id)
+                # Execute tool and get structured result
+                result_obj = await self.executor.execute_script_structured(
+                    name, arguments, request_id=request_id
+                )
                 
-                # Audit log success
+                # Audit log completion
                 if self.audit_logger:
-                    # Try to parse exit code from result
-                    exit_code = 0 if "success" in result.lower() else 1
                     self.audit_logger.log_tool_execution_end(
                         request_id=request_id,
                         tool_name=name,
-                        success=exit_code == 0,
-                        exit_code=exit_code,
-                        execution_time=0.0  # Will be updated in executor
+                        success=result_obj.success,
+                        exit_code=result_obj.exit_code,
+                        execution_time=result_obj.execution_time,
+                        error_message=result_obj.stderr if not result_obj.success else None
                     )
                 
                 logger.info(f"[{request_id}] Tool execution completed: {name}")
-                return [{"type": "text", "text": result}]
+                
+                # Return output as text (MCP standard format)
+                if result_obj.success:
+                    # Apply truncation
+                    output = result_obj.to_string(
+                        max_length=self.config.get_global_config().max_output_length
+                    )
+                    return [{
+                        "type": "text",
+                        "text": output
+                    }]
+                else:
+                    # Format error message
+                    error_output = result_obj.to_string(
+                        max_length=self.config.get_global_config().max_output_length
+                    )
+                    return [{
+                        "type": "text",
+                        "text": error_output
+                    }]
                 
             except Exception as e:
                 error_msg = f"Error executing tool {name}: {e}"

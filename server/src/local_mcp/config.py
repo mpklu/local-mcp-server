@@ -72,6 +72,20 @@ class GlobalConfig(BaseModel):
     sensitive_keys: List[str] = Field(default_factory=list)
     scan_values_for_patterns: bool = True
     redaction_style: str = "full"  # full, partial, hint
+    
+    # Resource limits (Unix only)
+    enable_resource_limits: bool = True
+    max_cpu_seconds: int = 60  # CPU time limit per execution
+    max_memory_mb: int = 512  # Memory limit in MB
+    max_processes: int = 10  # Max number of child processes
+    max_file_size_mb: int = 100  # Max file size a tool can create
+    
+    # Concurrent execution limits
+    max_concurrent_executions: int = 5  # Max tools running at once
+    
+    # Rate limiting
+    enable_rate_limiting: bool = True
+    max_executions_per_minute: int = 10  # Per tool rate limit
 
 
 class Config:

@@ -13,6 +13,12 @@ from typing import Any, Dict, Optional
 
 from .config import Config
 from .dependency_manager import IndividualVenvManager
+from .executor_limits import (
+    ResourceLimiter,
+    ExecutionSemaphore,
+    RateLimiter,
+    ExecutionController
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +54,23 @@ class ToolExecutionResult:
             "tool_metadata": self.tool_metadata
         }
     
-    def to_string(self) -> str:
-        """Convert to human-readable string."""
+    def to_string(self, max_length: Optional[int] = None) -> str:
+        """Convert to human-readable string.
+        
+        Args:
+            max_length: Maximum length of output (None for unlimited)
+            
+        Returns:
+            String representation with optional truncation
+        """
         if self.success:
-            return self.stdout
+            output = self.stdout
+            
+            # Apply truncation if specified
+            if max_length and len(output) > max_length:
+                output = output[:max_length] + f"\n\n[Output truncated at {max_length} characters]"
+            
+            return output
         else:
             error_msg = f"Error executing tool (exit code {self.exit_code})"
             if self.error_type:
@@ -72,9 +91,50 @@ class ScriptExecutor:
         self.config = config
         self.global_config = config.get_global_config()
         # No longer need venv_manager - tools manage their own environments
+        
+        # Initialize execution controller with resource limits
+        resource_limiter = ResourceLimiter(
+            max_cpu_seconds=self.global_config.max_cpu_seconds,
+            max_memory_mb=self.global_config.max_memory_mb,
+            max_processes=self.global_config.max_processes,
+            max_file_size_mb=self.global_config.max_file_size_mb,
+            enabled=self.global_config.enable_resource_limits
+        )
+        
+        execution_semaphore = ExecutionSemaphore(
+            max_concurrent=self.global_config.max_concurrent_executions
+        )
+        
+        rate_limiter = RateLimiter(
+            max_executions_per_minute=self.global_config.max_executions_per_minute,
+            enabled=self.global_config.enable_rate_limiting
+        )
+        
+        self.execution_controller = ExecutionController(
+            resource_limiter=resource_limiter,
+            execution_semaphore=execution_semaphore,
+            rate_limiter=rate_limiter
+        )
     
     async def execute_script(self, script_name: str, arguments: Dict[str, Any], request_id: str = "unknown") -> str:
-        """Execute a script with given arguments.
+        """Execute a script with given arguments, returning string result.
+        
+        This is a wrapper around execute_script_structured() that converts
+        the result to a string for backward compatibility.
+        
+        Args:
+            script_name: Name of the script to execute
+            arguments: Dictionary of arguments to pass
+            request_id: Request correlation ID for logging
+            
+        Returns:
+            String representation of execution result
+        """
+        result = await self.execute_script_structured(script_name, arguments, request_id)
+        return result.to_string(max_length=self.global_config.max_output_length)
+    
+    async def execute_script_structured(self, script_name: str, arguments: Dict[str, Any], request_id: str = "unknown") -> ToolExecutionResult:
+        """Execute a script with given arguments, returning structured result.
         
         Simplified: All scripts are now run.sh which handle their own setup.
         
@@ -82,6 +142,9 @@ class ScriptExecutor:
             script_name: Name of the script to execute
             arguments: Dictionary of arguments to pass
             request_id: Request correlation ID for logging
+            
+        Returns:
+            ToolExecutionResult object with structured data
         """
         import time
         
@@ -95,23 +158,41 @@ class ScriptExecutor:
                 success=False, exit_code=-1, stdout="", stderr=f"Unknown script: {script_name}",
                 execution_time=0, error_type="validation"
             )
-            return result.to_string()
+            return result
         
         if not script_config.enabled:
             result = ToolExecutionResult(
                 success=False, exit_code=-1, stdout="", stderr=f"Script {script_name} is disabled",
                 execution_time=0, error_type="validation"
             )
-            return result.to_string()
+            return result
         
         # Check confirmation if required
         if script_config.requires_confirmation:
             confirm = arguments.get('confirm', False)
             if not confirm:
-                return (
-                    f"Script {script_name} requires confirmation. "
-                    f"Please set 'confirm': true to execute."
+                return ToolExecutionResult(
+                    success=False,
+                    exit_code=-1,
+                    stdout="",
+                    stderr=f"Script {script_name} requires confirmation. Please set 'confirm': true to execute.",
+                    execution_time=0.0,
+                    error_type="confirmation_required"
                 )
+        
+        # Check rate limit and acquire execution slot
+        is_allowed, error_message = await self.execution_controller.acquire(script_name)
+        if not is_allowed:
+            logger.warning(f"[{request_id}] {error_message}")
+            result = ToolExecutionResult(
+                success=False,
+                exit_code=-1,
+                stdout="",
+                stderr=error_message,
+                execution_time=0.0,
+                error_type="rate_limit"
+            )
+            return result
         
         # Validate arguments for security issues (path traversal, injection, etc.)
         from .sanitization import validate_arguments_security
@@ -130,11 +211,10 @@ class ScriptExecutor:
                 exit_code=1,
                 stdout="",
                 stderr=error_msg,
-                error_message=error_msg,
                 execution_time=0.0,
                 error_type="security_validation"
             )
-            return result.to_string()
+            return result
         
         # Build script path
         script_path = self.tools_dir / script_config.script_path
@@ -143,12 +223,12 @@ class ScriptExecutor:
                 success=False, exit_code=-1, stdout="", stderr=f"Script not found: {script_path}",
                 execution_time=time.time() - start_time, error_type="validation"
             )
-            return result.to_string()
+            return result
         
         try:
             # All tools now use shell scripts (run.sh)
             result = await self._execute_shell_script(
-                script_path, arguments, script_config
+                script_path, arguments, script_config, script_name
             )
             
             result.execution_time = time.time() - start_time
@@ -157,7 +237,7 @@ class ScriptExecutor:
                 "tool_type": "shell"
             })
             
-            return result.to_string()
+            return result
             
         except Exception as e:
             result = ToolExecutionResult(
@@ -166,7 +246,10 @@ class ScriptExecutor:
                 tool_metadata={"tool_name": script_name, "tool_type": "shell"}
             )
             logger.error(f"Error executing {script_name}: {e}")
-            return result.to_string()
+            return result
+        finally:
+            # Always release execution slot
+            self.execution_controller.release(script_name)
     
     async def _execute_python_script_with_venv(
         self, 
@@ -210,7 +293,8 @@ class ScriptExecutor:
         self, 
         script_path: Path, 
         arguments: Dict[str, Any], 
-        script_config
+        script_config,
+        tool_name: str
     ) -> ToolExecutionResult:
         """Execute a shell script."""
         
@@ -221,7 +305,7 @@ class ScriptExecutor:
         cmd = [str(script_path)]
         cmd.extend(self._build_script_arguments(arguments))
         
-        return await self._run_subprocess_structured(cmd, script_path.parent, script_config.name)
+        return await self._run_subprocess_structured(cmd, script_path.parent, tool_name)
     
     def _build_script_arguments(self, arguments: Dict[str, Any]) -> list:
         """Build command line arguments from input parameters."""
@@ -261,14 +345,18 @@ class ScriptExecutor:
         # Prepare environment
         env = os.environ.copy()
         
+        # Get preexec function for resource limits (Unix only)
+        preexec_fn = self.execution_controller.get_preexec_fn()
+        
         try:
-            # Run the subprocess
+            # Run the subprocess with resource limits
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=working_dir,
-                env=env
+                env=env,
+                preexec_fn=preexec_fn  # Apply resource limits in child process
             )
             
             # Wait for completion with timeout
