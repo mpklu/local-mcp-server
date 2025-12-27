@@ -7,9 +7,11 @@ from local_mcp.server import LocalMCPServer
 
 
 async def test():
+    # Tools are at project root, config is in server/config
+    project_root = Path(__file__).parent.parent.parent
     server = LocalMCPServer(
-        Path(__file__).parent.parent / 'tools',
-        Path(__file__).parent / 'config'
+        project_root / 'tools',
+        Path(__file__).parent.parent / 'config'
     )
     
     # Discover tools first
