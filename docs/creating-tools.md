@@ -243,7 +243,104 @@ Document parameters in run.sh header comments for auto-discovery:
 # @param input_file: Path to input file (type: string, required: true)
 # @param output_format: Output format (type: string, required: false, default: json)
 # @param verbose: Enable verbose logging (type: boolean, required: false)
-# @param count: Number of iterations (type: integer, required: false, default: 1)```
+# @param count: Number of iterations (type: integer, required: false, default: 1)
+```
+
+## Tool Metadata & MCP 1.25.0 Features
+
+### Tool Titles (Human-Friendly Names)
+
+Titles are automatically generated from tool names but can be customized in your tool's config file:
+
+**Auto-generated titles:**
+- `file-ops` → "File Operations"
+- `http-client` → "HTTP Client"
+- `text-utils` → "Text Utilities"
+- `api-gateway` → "API Gateway"
+
+**Custom titles** (in `server/config/tools/your-tool.json`):
+```json
+{
+  "script_config": {
+    "name": "my-tool",
+    "title": "My Custom Tool Name",
+    "description": "..."
+  }
+}
+```
+
+### Tool Annotations (MCP 1.25.0)
+
+Annotations help AI assistants understand tool behavior and make better execution decisions.
+
+**Read-Only Tools** 🔍
+Mark tools that only read data without modifying anything:
+```json
+{
+  "script_config": {
+    "name": "system-info",
+    "title": "System Information",
+    "read_only": true,
+    "destructive": false
+  }
+}
+```
+
+Examples:
+- Data retrieval tools (system-info, api-client)
+- Read-only file viewers
+- Status checkers and monitors
+
+**Destructive Tools** 💥
+Mark tools that modify files, data, or system state:
+```json
+{
+  "script_config": {
+    "name": "file-ops",
+    "title": "File Operations",
+    "read_only": false,
+    "destructive": true
+  }
+}
+```
+
+Examples:
+- File write operations
+- Database modifications
+- System configuration changes
+- Resource deletion
+
+**Default Tools** 📝
+Tools that don't fit the above categories:
+```json
+{
+  "script_config": {
+    "name": "calculator",
+    "title": "Calculator",
+    "read_only": false,
+    "destructive": false
+  }
+}
+```
+
+### Annotation Guidelines
+
+**When to mark read_only = true:**
+- Tool never modifies files or system state
+- Tool only retrieves or displays information
+- Tool performs read-only queries or analysis
+
+**When to mark destructive = true:**
+- Tool creates, modifies, or deletes files
+- Tool changes system configuration
+- Tool performs operations that can't be easily undone
+- Tool has potential security or data loss implications
+
+**Benefits:**
+- AI assistants can make safer tool selections
+- Users get clearer warnings for destructive operations
+- Better integration with confirmation mechanisms
+- Improved audit logging and security monitoring```
 
 ## Workspace Configuration & Path Security
 

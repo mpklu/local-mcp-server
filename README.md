@@ -4,11 +4,13 @@ A universal Model Context Protocol (MCP) server that automatically discovers and
 
 ## 🌟 Features
 
+- **MCP 1.25.0 Compliant**: Latest protocol features including tool titles and annotations
 - **Directory-Based Auto-Discovery**: Automatically detects tools organized in individual folders under `tools/`
 - **Universal Host Support**: Works with Claude Desktop, Generic MCP clients, and Google Gemini CLI through pluggable adapters
 - **Intelligent Discovery Pipeline**: Auto-generates configurations for new tools with dual-config system
 - **Visual Management**: Modern React-based web interface for tool configuration and monitoring
 - **Host Adapter Architecture**: Pluggable system supporting different MCP communication protocols
+- **Tool Annotations**: Automatic classification of tools as read-only or destructive for better AI understanding
 - **Dependency Isolation**: Each tool gets its own virtual environment with automatic dependency management
 - **Secure Execution**: Comprehensive security with resource limits, sandboxing, and input validation
 - **Real-time Monitoring**: Live server status, execution monitoring, and configuration management
@@ -72,6 +74,25 @@ All security features are configurable via `config/global.json`:
 ```
 
 See [Configuration Guide](docs/configuration.md) for complete security settings.
+
+## 🎯 MCP 1.25.0 Features
+
+Local MCP Server supports the latest Model Context Protocol features:
+
+### Tool Titles
+Tools now have **human-friendly display names** that appear in AI assistant interfaces:
+- `file-ops` → "File Operations"
+- `http-client` → "HTTP Client"  
+- `system-info` → "System Information"
+
+Titles are automatically generated from tool names or can be customized in tool configs.
+
+### Tool Annotations
+Tools are automatically classified with semantic flags for better AI understanding:
+- **Read-Only** 🔍: Tool only reads data, doesn't modify system (e.g., system-info, http-client)
+- **Destructive** 💥: Tool performs operations that modify files or data (e.g., file-ops with write capabilities)
+
+These annotations help AI assistants make better decisions about when to use each tool and what precautions to take.
 
 ## 🚀 Quick Start
 

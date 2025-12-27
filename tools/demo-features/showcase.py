@@ -199,7 +199,7 @@ def interactive_demo(name="Anonymous", confirm=True, danger_level="low"):
         
         # Simulate confirmation check
         if requires_confirmation:
-            print(f"⚠️  CONFIRMATION REQUIRED ⚠️")
+            print("⚠️  CONFIRMATION REQUIRED ⚠️")
             print(f"Action: {action_info['action']}")
             print(f"Risk Level: {danger_level.upper()}")
             print(f"Risk Description: {action_info['risk']}")

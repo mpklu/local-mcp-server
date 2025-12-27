@@ -31,6 +31,7 @@ class WorkspaceConfig(BaseModel):
 class ScriptConfig(BaseModel):
     """Configuration for a single script."""
     name: str
+    title: Optional[str] = None  # Human-friendly display name (MCP 1.25.0+)
     description: str
     script_path: str
     script_type: str  # "python" or "shell"
@@ -43,6 +44,10 @@ class ScriptConfig(BaseModel):
     tags: List[str] = Field(default_factory=list)
     enabled: bool = True
     workspace_config: WorkspaceConfig = Field(default_factory=WorkspaceConfig)
+    
+    # Tool annotations (MCP 1.25.0+)
+    read_only: bool = False  # Tool only reads data, doesn't modify
+    destructive: bool = False  # Tool performs destructive operations
 
 
 class GlobalConfig(BaseModel):

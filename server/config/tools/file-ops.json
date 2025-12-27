@@ -6,10 +6,13 @@
   "tags": [],
   "script_config": {
     "name": "file-ops",
+    "title": "File Operations",
     "description": "File Operations Tool - Provides basic file and directory operations with safety checks including: directory listing with pattern matching, file reading with encoding support, safe file creation with overwrite protection, and detailed file metadata and information.",
     "script_path": "file-ops/run.py",
     "script_type": "python",
     "requires_confirmation": true,
+    "read_only": false,
+    "destructive": true,
     "parameters": [
       {
         "name": "function",

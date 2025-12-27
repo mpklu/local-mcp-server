@@ -6,10 +6,13 @@
   "tags": [],
   "script_config": {
     "name": "system-info",
+    "title": "System Information",
     "description": "Entry point for system-info tool.",
     "script_path": "system-info/run.py",
     "script_type": "python",
     "requires_confirmation": true,
+    "read_only": true,
+    "destructive": false,
     "parameters": [
       {
         "name": "function",

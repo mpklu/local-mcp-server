@@ -6,10 +6,13 @@
   "tags": [],
   "script_config": {
     "name": "demo-features",
+    "title": "Demo Features",
     "description": "Entry point for demo-features tool.",
     "script_path": "demo-features/run.py",
     "script_type": "python",
     "requires_confirmation": true,
+    "read_only": true,
+    "destructive": false,
     "parameters": [
       {
         "name": "function",

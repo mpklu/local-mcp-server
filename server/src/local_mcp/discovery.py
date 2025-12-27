@@ -706,14 +706,52 @@ class ScriptDiscovery:
             
             tool = Tool(
                 name=script_name,
+                title=config.title or self._generate_title(script_name),  # MCP 1.25.0: human-friendly title
                 description=config.description or f"Execute {config.script_type} script: {config.script_path}",
                 inputSchema={
                     "type": "object",
                     "properties": properties,
                     "required": required
+                },
+                annotations={  # MCP 1.25.0: tool annotations
+                    "readOnly": config.read_only,
+                    "destructive": config.destructive
                 }
             )
             
             tools.append(tool)
         
         return tools
+    
+    def _generate_title(self, tool_name: str) -> str:
+        """Generate human-friendly title from tool name.
+        
+        Converts names like 'file-ops' to 'File Operations' and 
+        'http-client' to 'HTTP Client'.
+        
+        Args:
+            tool_name: Tool name (usually kebab-case)
+            
+        Returns:
+            Human-friendly title
+        """
+        # Split on hyphens and underscores
+        words = tool_name.replace('-', ' ').replace('_', ' ').split()
+        
+        # Capitalize each word, with special handling for acronyms
+        capitalized = []
+        for word in words:
+            # Keep known acronyms uppercase
+            if word.upper() in ['HTTP', 'API', 'URL', 'JSON', 'XML', 'SQL', 'DB', 'ID']:
+                capitalized.append(word.upper())
+            # Handle common suffixes
+            elif word.lower() in ['ops', 'operations']:
+                capitalized.append('Operations')
+            elif word.lower() in ['utils', 'utilities']:
+                capitalized.append('Utilities')
+            elif word.lower() == 'info':
+                capitalized.append('Information')
+            else:
+                capitalized.append(word.capitalize())
+        
+        return ' '.join(capitalized)

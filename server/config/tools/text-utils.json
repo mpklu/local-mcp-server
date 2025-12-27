@@ -6,10 +6,13 @@
   "tags": [],
   "script_config": {
     "name": "text-utils",
+    "title": "Text Utilities",
     "description": "Entry point for text-utils tool.",
     "script_path": "text-utils/run.py",
     "script_type": "python",
     "requires_confirmation": true,
+    "read_only": true,
+    "destructive": false,
     "parameters": [
       {
         "name": "function",

@@ -6,10 +6,13 @@
   "tags": [],
   "script_config": {
     "name": "http-client",
+    "title": "HTTP Client",
     "description": "Entry point for http-client tool.",
     "script_path": "http-client/run.py",
     "script_type": "python",
     "requires_confirmation": true,
+    "read_only": true,
+    "destructive": false,
     "parameters": [
       {
         "name": "function",
