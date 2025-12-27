@@ -124,7 +124,20 @@ class LocalMCPServer:
                         error_msg = f"Validation failed for tool {name}:\n" + "\n".join(validation_errors)
                         logger.error(f"[{request_id}] {error_msg}")
                         
+                        # Enhanced audit logging for validation failures
                         if self.audit_logger:
+                            # Log security event for validation failure
+                            self.audit_logger.log_security_event(
+                                event_type="validation_failure",
+                                description=f"Parameter validation failed for tool {name}",
+                                tool_name=name,
+                                request_id=request_id,
+                                details={
+                                    "validation_errors": validation_errors,
+                                    "error_count": len(validation_errors)
+                                }
+                            )
+                            
                             self.audit_logger.log_tool_execution_end(
                                 request_id=request_id,
                                 tool_name=name,
@@ -141,8 +154,28 @@ class LocalMCPServer:
                     name, arguments, request_id=request_id
                 )
                 
-                # Audit log completion
+                # Calculate output size before truncation
+                output_size = len(result_obj.stdout) if result_obj.stdout else 0
+                was_truncated = output_size > self.config.get_global_config().max_output_length
+                
+                # Enhanced audit log completion
                 if self.audit_logger:
+                    # Add output size to audit log
+                    extra_info = {
+                        'output_size': output_size,
+                        'was_truncated': was_truncated
+                    }
+                    
+                    # Log security event if output was unusually large
+                    if output_size > 100000:  # 100KB threshold
+                        self.audit_logger.log_security_event(
+                            event_type="large_output",
+                            description=f"Tool {name} generated large output: {output_size} bytes",
+                            tool_name=name,
+                            request_id=request_id,
+                            details=extra_info
+                        )
+                    
                     self.audit_logger.log_tool_execution_end(
                         request_id=request_id,
                         tool_name=name,
@@ -152,7 +185,10 @@ class LocalMCPServer:
                         error_message=result_obj.stderr if not result_obj.success else None
                     )
                 
-                logger.info(f"[{request_id}] Tool execution completed: {name}")
+                logger.info(
+                    f"[{request_id}] Tool execution completed: {name} "
+                    f"(output: {output_size} bytes, time: {result_obj.execution_time:.2f}s)"
+                )
                 
                 # Return output as text (MCP standard format)
                 if result_obj.success:
@@ -175,21 +211,47 @@ class LocalMCPServer:
                     }]
                 
             except Exception as e:
-                error_msg = f"Error executing tool {name}: {e}"
-                logger.error(f"[{request_id}] {error_msg}")
+                # Log full error internally with all details
+                from .sanitization import SafeErrorFormatter
+                SafeErrorFormatter.log_error(
+                    logger,
+                    error=e,
+                    tool_name=name,
+                    request_id=request_id,
+                    arguments=arguments
+                )
                 
-                # Audit log failure
+                # Return sanitized error to client
+                safe_error_msg = SafeErrorFormatter.format_error(
+                    error=e,
+                    tool_name=name,
+                    request_id=request_id
+                )
+                
+                # Enhanced audit log for exceptions
                 if self.audit_logger:
+                    # Log security event for unexpected exceptions
+                    self.audit_logger.log_security_event(
+                        event_type="execution_exception",
+                        description=f"Unexpected exception during tool execution: {type(e).__name__}",
+                        tool_name=name,
+                        request_id=request_id,
+                        details={
+                            'exception_type': type(e).__name__,
+                            'exception_module': type(e).__module__
+                        }
+                    )
+                    
                     self.audit_logger.log_tool_execution_end(
                         request_id=request_id,
                         tool_name=name,
                         success=False,
                         exit_code=-1,
                         execution_time=0.0,
-                        error_message=str(e)
+                        error_message=type(e).__name__  # Log type, not full message
                     )
                 
-                return [{"type": "text", "text": error_msg}]
+                return [{"type": "text", "text": safe_error_msg}]
     
     async def run(self, force_discovery: bool = False, full_discovery: bool = False, host_type: str = "claude-desktop"):
         """Start the MCP server with the specified host adapter."""

@@ -12,6 +12,8 @@ This module provides comprehensive input validation to prevent:
 
 import re
 import logging
+import json
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional, Set
 
@@ -526,3 +528,203 @@ def validate_arguments_security(
                 errors.append(f"String validation failed for '{key}': {error}")
     
     return errors
+
+
+class SafeErrorFormatter:
+    """Format exceptions safely for client consumption, preventing information leakage."""
+    
+    # Map exception types to safe, user-friendly messages
+    SAFE_ERROR_MESSAGES = {
+        # File system errors
+        FileNotFoundError: "The requested resource was not found",
+        PermissionError: "Permission denied - insufficient access rights",
+        IsADirectoryError: "Invalid operation on directory",
+        NotADirectoryError: "Expected directory but found file",
+        FileExistsError: "Resource already exists",
+        OSError: "System error occurred",
+        
+        # Import and module errors
+        ModuleNotFoundError: "Required module is not available",
+        ImportError: "Failed to import required module",
+        
+        # Execution errors
+        TimeoutError: "Operation timed out",
+        subprocess.TimeoutExpired: "Tool execution timed out",
+        ConnectionError: "Connection failed",
+        ConnectionRefusedError: "Connection refused",
+        ConnectionResetError: "Connection reset",
+        BrokenPipeError: "Connection interrupted",
+        
+        # Value errors
+        ValueError: "Invalid input value",
+        TypeError: "Invalid input type",
+        KeyError: "Missing required field",
+        IndexError: "Index out of range",
+        AttributeError: "Invalid attribute access",
+        
+        # Runtime errors
+        RuntimeError: "Runtime error occurred",
+        MemoryError: "Insufficient memory",
+        RecursionError: "Operation too complex",
+        
+        # JSON errors
+        json.JSONDecodeError: "Invalid JSON format",
+        
+        # Other common errors
+        UnicodeDecodeError: "Invalid character encoding",
+        UnicodeEncodeError: "Character encoding error",
+    }
+    
+    # Patterns to scrub from error messages
+    SCRUB_PATTERNS = [
+        # Absolute filesystem paths
+        (re.compile(r'/[a-zA-Z0-9/_.-]+'), '<path>'),
+        (re.compile(r'[A-Z]:\\[a-zA-Z0-9\\_.-]+'), '<path>'),
+        
+        # Usernames
+        (re.compile(r'/Users/[a-zA-Z0-9_-]+'), '/Users/<user>'),
+        (re.compile(r'/home/[a-zA-Z0-9_-]+'), '/home/<user>'),
+        
+        # IP addresses
+        (re.compile(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b'), '<ip_address>'),
+        
+        # Port numbers in URLs
+        (re.compile(r':\d{2,5}(/|$)'), ':<port>\\1'),
+        
+        # Hostnames
+        (re.compile(r'@[a-zA-Z0-9.-]+\.[a-z]{2,}'), '@<hostname>'),
+        
+        # Database connection strings
+        (re.compile(r'(postgresql|mysql|mongodb|redis)://[^\s]+'), '<database_url>'),
+        
+        # Environment variable values
+        (re.compile(r'([A-Z_]+)=[^\s]+'), '\\1=<value>'),
+    ]
+    
+    @classmethod
+    def format_error(
+        cls,
+        error: Exception,
+        tool_name: Optional[str] = None,
+        include_type: bool = False,
+        request_id: Optional[str] = None
+    ) -> str:
+        """Format an exception into a safe, client-facing error message.
+        
+        Args:
+            error: The exception to format
+            tool_name: Optional tool name for context
+            include_type: Whether to include exception type name
+            request_id: Optional request ID for correlation
+            
+        Returns:
+            Safe error message string
+        """
+        error_type = type(error)
+        
+        # Get base safe message
+        safe_message = cls.SAFE_ERROR_MESSAGES.get(
+            error_type,
+            "An error occurred during tool execution"
+        )
+        
+        # Add tool context if provided
+        if tool_name:
+            safe_message = f"Tool '{tool_name}' failed: {safe_message}"
+        
+        # Add exception type if requested (useful for debugging)
+        if include_type:
+            safe_message = f"[{error_type.__name__}] {safe_message}"
+        
+        # Add request ID for correlation
+        if request_id:
+            safe_message += f" (Request ID: {request_id})"
+        
+        return safe_message
+    
+    @classmethod
+    def format_error_with_details(
+        cls,
+        error: Exception,
+        tool_name: Optional[str] = None,
+        allow_partial_message: bool = False,
+        request_id: Optional[str] = None
+    ) -> str:
+        """Format error with scrubbed details from original message.
+        
+        Args:
+            error: The exception to format
+            tool_name: Optional tool name for context
+            allow_partial_message: If True, includes scrubbed error message
+            request_id: Optional request ID for correlation
+            
+        Returns:
+            Safe error message with optional scrubbed details
+        """
+        # Start with safe base message
+        message = cls.format_error(error, tool_name, include_type=True, request_id=request_id)
+        
+        # Optionally add scrubbed details
+        if allow_partial_message and str(error):
+            scrubbed = cls._scrub_sensitive_info(str(error))
+            message += f"\nDetails: {scrubbed}"
+        
+        return message
+    
+    @classmethod
+    def _scrub_sensitive_info(cls, text: str) -> str:
+        """Remove sensitive information from error text.
+        
+        Args:
+            text: Text to scrub
+            
+        Returns:
+            Scrubbed text with sensitive info replaced
+        """
+        scrubbed = text
+        
+        for pattern, replacement in cls.SCRUB_PATTERNS:
+            scrubbed = pattern.sub(replacement, scrubbed)
+        
+        # Limit length
+        if len(scrubbed) > 200:
+            scrubbed = scrubbed[:200] + "..."
+        
+        return scrubbed
+    
+    @classmethod
+    def log_error(
+        cls,
+        logger: logging.Logger,
+        error: Exception,
+        tool_name: Optional[str] = None,
+        request_id: Optional[str] = None,
+        arguments: Optional[Dict[str, Any]] = None
+    ):
+        """Log full error details internally (not sent to client).
+        
+        Args:
+            logger: Logger instance to use
+            error: The exception to log
+            tool_name: Optional tool name
+            request_id: Optional request ID for correlation
+            arguments: Optional arguments (will be redacted)
+        """
+        extra = {
+            'error_type': type(error).__name__,
+            'request_id': request_id,
+            'tool_name': tool_name
+        }
+        
+        if arguments:
+            # Redact sensitive arguments before logging
+            extra['arguments'] = SensitiveDataRedactor.redact_for_logging(
+                arguments,
+                sensitive_keys={'password', 'token', 'key', 'secret'}
+            )
+        
+        logger.error(
+            f"Tool execution error: {type(error).__name__}: {error}",
+            exc_info=True,
+            extra=extra
+        )

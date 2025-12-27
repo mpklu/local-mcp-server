@@ -10,8 +10,68 @@ A universal Model Context Protocol (MCP) server that automatically discovers and
 - **Visual Management**: Modern React-based web interface for tool configuration and monitoring
 - **Host Adapter Architecture**: Pluggable system supporting different MCP communication protocols
 - **Dependency Isolation**: Each tool gets its own virtual environment with automatic dependency management
-- **Secure Execution**: Sandboxed script execution with timeout protection and structured result handling
+- **Secure Execution**: Comprehensive security with resource limits, sandboxing, and input validation
 - **Real-time Monitoring**: Live server status, execution monitoring, and configuration management
+
+## 🔒 Security Features
+
+Local MCP Server implements multiple layers of security to protect your system:
+
+### Input Validation & Sanitization
+- **Path Traversal Protection**: Multi-layer validation prevents access outside allowed directories
+- **Configurable Workspaces**: Each tool can define allowed paths with special variables (`{TOOL_DIR}`, `{HOME}`, `{TEMP}`)
+- **Parameter Validation**: Type checking, required field enforcement, and format validation from `@param` annotations
+- **Prompt Injection Detection**: Scans input for malicious patterns attempting to manipulate AI behavior
+- **String Sanitization**: Null byte filtering, length limits, and control character removal
+
+### Sensitive Data Protection
+- **Automatic Redaction**: Detects and redacts 30+ sensitive keywords (passwords, API keys, tokens, secrets)
+- **Pattern-Based Detection**: Regex patterns catch credit cards, SSNs, AWS keys, GitHub tokens, GitLab PATs, JWTs, private keys
+- **Dual Redaction Styles**: 
+  - Full redaction (`***REDACTED***`) for regular logs
+  - Hint-style (`<redacted:14_chars:key:password>`) for audit logs with debugging context
+- **Configurable Scope**: Control which data gets redacted (arguments, outputs, or both)
+
+### Resource Limits (Unix/Linux/macOS)
+- **CPU Time Limits**: Prevent runaway processes (default: 60 seconds per execution)
+- **Memory Limits**: Cap virtual memory usage (default: 512MB per tool)
+- **Process Limits**: Restrict child process creation (default: 10 processes)
+- **File Size Limits**: Prevent disk space exhaustion (default: 100MB per file)
+- **Graceful Degradation**: Automatically disabled on Windows, other protections remain active
+
+### Execution Controls
+- **Concurrent Execution Limits**: Maximum simultaneous tool executions (default: 5)
+- **Rate Limiting**: Per-tool execution limits using sliding window algorithm (default: 10/minute)
+- **Confirmation Requirements**: Optional manual approval before destructive operations
+- **Tool Whitelisting**: Only explicitly configured tools can execute
+- **Process Isolation**: Each tool runs in separate subprocess with captured I/O
+
+### Audit Logging
+- **Structured JSON Logs**: Machine-parsable logs with ISO8601 timestamps
+- **Request Correlation**: UUID-based request IDs thread through entire execution chain
+- **Separate Audit Trail**: Dedicated `audit.log` for security events and tool lifecycle
+- **Rotating File Handlers**: Automatic log rotation (10MB max, 5 backups)
+- **Execution Tracking**: Start/end events, execution time, success/failure, exit codes
+
+### Configuration
+All security features are configurable via `config/global.json`:
+
+```json
+{
+  "enable_resource_limits": true,
+  "max_cpu_seconds": 60,
+  "max_memory_mb": 512,
+  "max_processes": 10,
+  "max_file_size_mb": 100,
+  "max_concurrent_executions": 5,
+  "enable_rate_limiting": true,
+  "max_executions_per_minute": 10,
+  "redact_sensitive_data": true,
+  "enable_audit_logging": true
+}
+```
+
+See [Configuration Guide](docs/configuration.md) for complete security settings.
 
 ## 🚀 Quick Start
 
