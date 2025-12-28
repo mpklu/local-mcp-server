@@ -65,10 +65,22 @@ class ToolConfigGenerator:
             self.tools_config_dir.mkdir(parents=True, exist_ok=True)
             
             # Convert ScriptConfig to dict if needed
-            if hasattr(script_config, '__dict__'):
-                script_config_dict = script_config.__dict__.copy()
+            if hasattr(script_config, 'model_dump'):
+                # Pydantic v2
+                script_config_dict = script_config.model_dump()
             elif hasattr(script_config, 'dict'):
+                # Pydantic v1
                 script_config_dict = script_config.dict()
+            elif hasattr(script_config, '__dict__'):
+                # Fallback: manually convert to dict, handling nested Pydantic models
+                script_config_dict = {}
+                for key, value in script_config.__dict__.items():
+                    if hasattr(value, 'model_dump'):
+                        script_config_dict[key] = value.model_dump()
+                    elif hasattr(value, 'dict'):
+                        script_config_dict[key] = value.dict()
+                    else:
+                        script_config_dict[key] = value
             else:
                 script_config_dict = dict(script_config) if isinstance(script_config, dict) else script_config
             
@@ -159,8 +171,14 @@ class ToolConfigGenerator:
                 
                 if discovered:
                     tool_data = discovered_tools[tool_name]
-                    script_path = tool_data.get("script_path", "Unknown")
-                    description = tool_data.get("description", "No description")
+                    # Extract from nested config object
+                    if isinstance(tool_data, dict) and 'config' in tool_data:
+                        config = tool_data['config']
+                        script_path = config.script_path if hasattr(config, 'script_path') else getattr(config, 'script_path', 'Unknown')
+                        description = config.description if hasattr(config, 'description') else getattr(config, 'description', 'No description')
+                    else:
+                        script_path = tool_data.get("script_path", "Unknown")
+                        description = tool_data.get("description", "No description")
                     print(f"     Path: {script_path}")
                     print(f"     Desc: {description}")
                 

@@ -1,0 +1,53 @@
+{
+  "enabled": true,
+  "last_modified": "2025-12-27T14:23:16.947111",
+  "auto_detected": true,
+  "created_by": "discovery_tool",
+  "tags": [],
+  "script_config": {
+    "name": "pwod",
+    "title": null,
+    "description": "Password of the Day (PWOD) - Generate deterministic passwords based on dates or custom strings",
+    "script_path": "pwod/run.sh",
+    "script_type": "shell",
+    "requires_confirmation": false,
+    "parameters": [
+      {
+        "name": "function",
+        "type": "string",
+        "description": "The function to execute: current, date, or string",
+        "required": true
+      },
+      {
+        "name": "date_string",
+        "type": "string",
+        "description": "Date in YYYY-MM-DD format for 'date' function",
+        "required": false
+      },
+      {
+        "name": "custom_string",
+        "type": "string",
+        "description": "Custom string for 'string' function",
+        "required": false
+      }
+    ],
+    "interactive": false,
+    "wrapper_function": null,
+    "dependencies": [],
+    "examples": [],
+    "enabled": true,
+    "workspace_config": {
+      "allowed_paths": [
+        "{TOOL_DIR}/workspace"
+      ],
+      "allow_absolute_paths": false,
+      "follow_symlinks": true,
+      "create_workspace": true,
+      "max_string_length": null,
+      "check_prompt_injection": true,
+      "max_output_length": null
+    },
+    "read_only": false,
+    "destructive": false
+  }
+}
