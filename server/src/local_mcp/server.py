@@ -9,6 +9,7 @@ for execution through Claude Desktop.
 import argparse
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -407,8 +408,10 @@ async def main():
     # Determine default paths relative to this script location
     # From src/local_mcp/server.py, go up to project root, then up one more level to find tools
     script_dir = Path(__file__).parent.parent.parent.parent  # Go up to workspace root
-    tools_dir = args.tools_dir or script_dir / "tools"
-    config_dir = args.config_dir or Path(__file__).parent.parent.parent / "config"
+    
+    # Priority: CLI args > Environment variables > Defaults
+    tools_dir = args.tools_dir or (Path(os.environ["TOOLS_DIR"]) if "TOOLS_DIR" in os.environ else script_dir / "tools")
+    config_dir = args.config_dir or (Path(os.environ["CONFIG_DIR"]) if "CONFIG_DIR" in os.environ else Path(__file__).parent.parent.parent / "config")
     
     # Build tools.json if requested
     if args.build_tools:

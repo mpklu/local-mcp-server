@@ -6,10 +6,55 @@ This guide provides everything you need to create or convert tools for the Local
 
 ---
 
+## 🎯 Single-Function Tool Principle
+
+**IMPORTANT**: MCP systems work best when each tool performs a **single, well-defined function**.
+
+### Why Single-Function Tools?
+
+1. **Better Discoverability**: AI agents can easily understand what each tool does
+2. **Clearer Parameters**: Each tool has only the parameters it needs
+3. **Simpler Documentation**: Each tool's purpose is immediately clear
+4. **Easier Testing**: Single-function tools are easier to test and validate
+5. **Better Error Handling**: Errors are specific to one operation
+
+### Multi-Function vs Single-Function
+
+❌ **Avoid Multi-Function Tools**:
+```bash
+# @param function: The function to execute: list, read, write, delete (type: string, required: true)
+# @param filepath: Path to file (type: string, required: false)
+# @param content: Content to write (type: string, required: false)
+```
+This creates confusion - which parameters are needed for which function?
+
+✅ **Prefer Separate Single-Function Tools**:
+```
+tools/file-list/      # Lists files in directory
+tools/file-read/      # Reads file content
+tools/file-write/     # Writes content to file
+tools/file-delete/    # Deletes a file
+```
+Each tool has clear, specific parameters for its one task.
+
+### Converting Multi-Function Tools
+
+If you have a tool with multiple functions (e.g., using Python Fire with multiple methods), create separate tools:
+
+1. Create a directory for each function
+2. Share the common code (copy or symlink `manager.py`)
+3. Create a specific `run.sh` for each that calls only one function
+4. Document only the relevant parameters in each `run.sh`
+
+**Example**: See `mp-list-databases`, `mp-show-tables`, `mp-search-column`, `mp-table-sizes`, and `mp-largest-tables` - five separate tools that share the same underlying `manager.py` but each expose one function with specific parameters.
+
+---
+
 ## Quick Checklist
 
 Before moving a tool to production:
 
+- [ ] **Single Function**: Tool performs ONE well-defined operation
 - [ ] **File Structure**: Has `run.sh`, `manager.py`/`main.py`, `requirements.txt`, `README.md`
 - [ ] **run.sh Header**: Contains `@param` annotations for all parameters
 - [ ] **JSON Output**: Tool emits structured JSON to stdout
@@ -41,19 +86,95 @@ tools/your-tool/
 
 ## Step 1: Create run.sh Entry Point
 
-Copy the template and customize:
+**For Single-Function Tools** (recommended):
 
 ```bash
 #!/bin/bash
-# Tool: your-tool-name
-# Description: Clear one-line description of what this tool does
+# Tool: list-databases
+# Description: List all databases on the MySQL server
 #
 # ===========================
 # PARAMETER DOCUMENTATION (REQUIRED)
 # ===========================
-# @param function: The function to execute (type: string, required: true)
-# @param param1: Description of param1 (type: string, required: false)
-# @param param2: Description of param2 (type: integer, required: false, default: 10)
+# This tool has no parameters - it lists all available databases
+#
+# ===========================
+# OUTPUT FORMAT
+# ===========================
+# This tool outputs structured JSON for easy AI parsing.
+
+set -euo pipefail
+
+# Configuration
+TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOL_NAME="$(basename "${TOOL_DIR}")"
+LOG_PREFIX="[$(date -u +"%Y-%m-%d %H:%M:%S UTC")] [${TOOL_NAME}]"
+
+# Logging helpers
+log_info() { echo "${LOG_PREFIX} INFO: $*" >&2; }
+log_error() { echo "${LOG_PREFIX} ERROR: $*" >&2; }
+
+# Environment setup
+setup_environment() {
+    log_info "Setting up environment..."
+    
+    if [[ -f "${TOOL_DIR}/requirements.txt" ]]; then
+        VENV_DIR="${TOOL_DIR}/.venv"
+        
+        if [[ ! -d "${VENV_DIR}" ]]; then
+            log_info "Creating virtual environment..."
+            python3 -m venv "${VENV_DIR}"
+            source "${VENV_DIR}/bin/activate"
+            pip install --quiet --upgrade pip
+            pip install --quiet -r "${TOOL_DIR}/requirements.txt"
+        else
+            source "${VENV_DIR}/bin/activate"
+        fi
+    fi
+    
+    log_info "Environment ready"
+}
+
+# Tool execution - calls specific function directly
+execute_tool() {
+    log_info "Executing tool with args: $*"
+    python3 "${TOOL_DIR}/manager.py" list_databases "$@"
+}
+
+# Health check
+health_check() {
+    echo '{"status":"healthy","tool":"'"${TOOL_NAME}"'"}'
+    return 0
+}
+
+# Main execution
+main() {
+    case "${1:-}" in
+        health)
+            health_check
+            ;;
+        *)
+            setup_environment
+            execute_tool "$@"
+            ;;
+    esac
+}
+
+main "$@"
+```
+
+**Or for tools with parameters**:
+
+```bash
+#!/bin/bash
+# Tool: search-tables-by-column
+# Description: Search for tables containing a specific column name
+#
+# ===========================
+# PARAMETER DOCUMENTATION (REQUIRED)
+# ===========================
+# @param database: Database name to search in (type: string, required: false, default: macpractice)
+# @param column_name: Column name to search for (type: string, required: true)
 #
 # Supported types: string, integer, number, boolean, array, object
 # Format: @param name: description (type: TYPE, required: BOOL, default: VALUE)
@@ -113,74 +234,89 @@ health_check() {
     exit 0
 }
 
-# Tool execution
+# Tool execution - calls specific function with parameters
 execute_tool() {
     log_info "Executing tool with args: $*"
-    local start_time=$(date +%s)
-    
-    python3 "${TOOL_DIR}/manager.py" "$@"
-    
-    local exit_code=$?
-    local end_time=$(date +%s)
-    local duration=$((end_time - start_time))
-    
-    if [[ ${exit_code} -eq 0 ]]; then
-        log_info "Tool completed successfully in ${duration}s"
-    else
-        log_error "Tool failed with exit code ${exit_code} after ${duration}s"
-    fi
-    
-    return ${exit_code}
+    python3 "${TOOL_DIR}/manager.py" search_tables_by_column "$@"
 }
 
-# Cleanup
-cleanup() {
-    deactivate 2>/dev/null || true
+# Health check
+health_check() {
+    echo '{"status":"healthy","tool":"'"${TOOL_NAME}"'"}'
+    return 0
 }
-trap cleanup EXIT
 
-# Main entry point
+# Main execution
 main() {
     case "${1:-}" in
-        --health)
+        health)
             health_check
             ;;
-        --version)
-            echo "1.0.0"
-            exit 0
-            ;;
-        --help)
-            echo "Usage: ./run.sh FUNCTION [OPTIONS]"
-            echo "See README.md for detailed usage"
-            exit 0
+        *)
+            setup_environment
+            execute_tool "$@"
             ;;
     esac
-    
-    setup_environment
-    execute_tool "$@"
 }
 
 main "$@"
 ```
 
 **Key sections to customize:**
-- Line 2-3: Tool name and description
-- Lines 7-9: `@param` annotations for your parameters
-- Lines 67-72: Health check conditions
-- Line 81: Path to your tool's main file
+- Lines 2-3: Tool name and clear, specific description
+- Lines 7-9: `@param` annotations - only for parameters this specific tool needs
+- Line 141: Call the specific function directly (e.g., `search_tables_by_column` not a generic function dispatcher)
+
+### ⚠️ Avoid Function Parameter Pattern
+
+**Don't do this**:
+```bash
+# @param function: The function to execute (type: string, required: true)
+execute_tool() {
+    python3 "${TOOL_DIR}/manager.py" "$@"  # Generic - routes to multiple functions
+}
+```
+
+**Instead, create separate tools**:
+```bash
+# In tools/search-by-column/run.sh
+execute_tool() {
+    python3 "${TOOL_DIR}/manager.py" search_tables_by_column "$@"  # Specific function
+}
+
+# In tools/show-tables/run.sh  
+execute_tool() {
+    python3 "${TOOL_DIR}/manager.py" show_table_count "$@"  # Different specific function
+}
+```
 
 ---
 
 ## Step 2: Document Parameters with @param
 
-Each parameter **MUST** be documented in the run.sh header:
+Each parameter **MUST** be documented in the run.sh header. Since each tool performs a single function, you only document the parameters relevant to that specific operation.
 
+**Single-Function Example** (no parameters):
 ```bash
-# @param function: The function to execute: list, read, write (type: string, required: true)
-# @param filepath: Path to the file (type: string, required: false)
-# @param content: Content to write to file (type: string, required: false)
-# @param count: Number of items to process (type: integer, required: false, default: 10)
-# @param verbose: Enable detailed logging (type: boolean, required: false, default: false)
+# Tool: mp-list-databases
+# Description: List all databases on the MySQL server
+#
+# ===========================
+# PARAMETER DOCUMENTATION
+# ===========================
+# This tool has no parameters
+```
+
+**Single-Function Example** (with parameters):
+```bash
+# Tool: mp-search-column
+# Description: Search for tables containing a specific column name
+#
+# ===========================
+# PARAMETER DOCUMENTATION (REQUIRED)
+# ===========================
+# @param database: Database name to search in (type: string, required: false, default: macpractice)
+# @param column_name: Column name to search for (type: string, required: true)
 ```
 
 **Format Rules:**
